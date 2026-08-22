@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Debug - Track</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: linear-gradient(to bottom right, #f8fafc, #e0f2fe);
+        }
+        .card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+        h1 {
+            color: #1e40af;
+            margin-bottom: 0.5rem;
+        }
+        h2 {
+            color: #3b82f6;
+            font-size: 1.25rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .label {
+            font-weight: 600;
+            color: #475569;
+        }
+        .value {
+            color: #0f172a;
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .test-result {
+            padding: 1rem;
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            margin-top: 1rem;
+            border-radius: 0.25rem;
+        }
+        .test-result.error {
+            border-left-color: #dc2626;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Environment Debug Information</h1>
+        <p>This page helps diagnose configuration issues in production.</p>
+
+        <h2>Environment Variables</h2>
+        <div class="info">
+            <span class="label">API URL:</span>
+            <span class="value" id="apiUrl">Loading...</span>
+        </div>
+        <div class="info">
+            <span class="label">Mode:</span>
+            <span class="value" id="mode">Loading...</span>
+        </div>
+        <div class="info">
+            <span class="label">Is Production:</span>
+            <span class="value" id="isProd">Loading...</span>
+        </div>
+        <div class="info">
+            <span class="label">Is Development:</span>
+            <span class="value" id="isDev">Loading...</span>
+        </div>
+        <div class="info">
+            <span class="label">Build Time:</span>
+            <span class="value" id="buildTime">Loading...</span>
+        </div>
+
+        <div id="status"></div>
+
+        <h2>API Connection Test</h2>
+        <button onclick="testApiConnection()">Test API Connection</button>
+        <div id="apiTest"></div>
+
+        <h2>Raw Environment Object</h2>
+        <pre id="rawEnv">Loading...</pre>
+    </div>
+
+    <script>
+        // Display environment information
+        const env = {
+            apiUrl: import.meta.env.VITE_API_URL,
+            mode: import.meta.env.MODE,
+            isProd: import.meta.env.PROD,
+            isDev: import.meta.env.DEV,
+            buildTime: new Date().toISOString()
+        };
+
+        document.getElementById('apiUrl').textContent = env.apiUrl || 'UNDEFINED';
+        document.getElementById('mode').textContent = env.mode || 'unknown';
+        document.getElementById('isProd').textContent = env.isProd ? 'Yes' : 'No';
+        document.getElementById('isDev').textContent = env.isDev ? 'Yes' : 'No';
+        document.getElementById('buildTime').textContent = env.buildTime;
+
+        // Check status
+        const statusDiv = document.getElementById('status');
+        if (!env.apiUrl) {
+            statusDiv.className = 'status error';
+            statusDiv.textContent = '❌ ERROR: VITE_API_URL is not defined!';
+        } else {
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '✅ Environment variables are configured';
+        }
+
+        // Display raw environment
+        document.getElementById('rawEnv').textContent = JSON.stringify(import.meta.env, null, 2);
+
+        // Test API connection
+        async function testApiConnection() {
+            const testDiv = document.getElementById('apiTest');
+            testDiv.innerHTML = '<p>Testing connection...</p>';
+
+            if (!env.apiUrl) {
+                testDiv.innerHTML = '<div class="test-result error">❌ Cannot test: API URL is not configured</div>';
+                return;
+            }
+
+            try {
+                // Test 1: Health check
+                const healthResponse = await fetch(`${env.apiUrl.replace('/api/v1', '')}/health`, {
+                    method: 'GET',
+                });
+                const healthData = await healthResponse.json();
+                
+                // Test 2: Invalid endpoint (should return JSON 404)
+                const notFoundResponse = await fetch(`${env.apiUrl}/test-endpoint-that-does-not-exist`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const notFoundData = await notFoundResponse.json();
+
+                // Test 3: Wrong method (should return JSON 405)
+                const wrongMethodResponse = await fetch(`${env.apiUrl}/resend-verification-email`, {
+                    method: 'GET',
+                });
+                const wrongMethodData = await wrongMethodResponse.json();
+
+                const results = [];
+                
+                // Check health
+                if (healthData.status === 'healthy') {
+                    results.push('✅ Health check passed');
+                } else {
+                    results.push('❌ Health check failed');
+                }
+
+                // Check 404 returns JSON
+                if (notFoundData.success === false && notFoundData.status_code === 404) {
+                    results.push('✅ 404 errors return JSON');
+                } else {
+                    results.push('❌ 404 errors not returning proper JSON');
+                }
+
+                // Check 405 returns JSON
+                if (wrongMethodData.success === false && wrongMethodData.status_code === 405) {
+                    results.push('✅ 405 errors return JSON');
+                } else {
+                    results.push('❌ 405 errors not returning proper JSON');
+                }
+
+                testDiv.innerHTML = `
+                    <div class="test-result">
+                        <h3>Test Results:</h3>
+                        ${results.map(r => `<p>${r}</p>`).join('')}
+                        <h4>Raw Responses:</h4>
+                        <pre>${JSON.stringify({ healthData, notFoundData, wrongMethodData }, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                testDiv.innerHTML = `<div class="test-result error">❌ Connection failed: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

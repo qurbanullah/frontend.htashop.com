@@ -1,0 +1,27 @@
+# Development Dockerfile for HTAShop Manage
+FROM node:24-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose development port (now 23050)
+EXPOSE 23050
+
+# Add healthcheck (targets dev port 23050)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:23050/ || exit 1
+
+# Start development server
+CMD ["npm", "run", "dev"]

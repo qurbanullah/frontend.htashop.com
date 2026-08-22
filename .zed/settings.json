@@ -1,0 +1,11 @@
+{
+  "lsp": {
+    "css": {
+      "initialization_options": {
+        "lint": {
+          "unknownAtRules": "ignore"
+        }
+      }
+    }
+  }
+}

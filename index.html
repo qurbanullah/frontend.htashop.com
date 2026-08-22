@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" class="">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+        <meta name="color-scheme" content="light dark" />
+        <title>HTAShop | Manage</title>
+        <link rel="icon" type="image/x-icon" href="/favicon.svg" />
+        <link rel="manifest" href="/manifest.json" />
+
+        <!-- These metas are updated at runtime by ThemeContext -->
+        <meta name="theme-color" id="theme-color-meta" content="#f9fafb" />
+        <meta name="apple-mobile-web-app-status-bar-style" id="apple-status-bar-meta" content="default" />
+
+        <!-- Apply .dark before first paint to prevent flash -->
+        <script>
+            (function () {
+                var d = false;
+                try {
+                    var t = localStorage.getItem("theme");
+                    d = t === "dark" || (t !== "light" &&
+                        window.matchMedia("(prefers-color-scheme: dark)").matches);
+                } catch (_) { /* private browsing — use OS preference */ }
+                if (d) document.documentElement.classList.add("dark");
+            })();
+        </script>
+
+        <style>
+            #loading {
+                position: fixed;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f9fafb;
+                z-index: 9999;
+            }
+            .dark #loading {
+                background: #111827;
+            }
+            #loading .spinner {
+                width: 40px;
+                height: 40px;
+                border: 4px solid #e5e7eb;
+                border-top-color: #3b82f6;
+                border-radius: 50%;
+                animation: app-spin 0.7s linear infinite;
+            }
+            .dark #loading .spinner {
+                border-color: #374151;
+                border-top-color: #60a5fa;
+            }
+            @keyframes app-spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <div id="loading">
+            <div class="spinner"></div>
+        </div>
+        <script type="module" src="/src/main.tsx"></script>
+    </body>
+</html>
