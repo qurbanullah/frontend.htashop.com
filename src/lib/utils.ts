@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from 'clsx'
+import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
 /**
@@ -12,11 +12,7 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format currency with proper localization
  */
-export function formatCurrency(
-  amount: number,
-  currency = 'USD',
-  locale = 'en-US'
-): string {
+export function formatCurrency(amount: number, currency = 'USD', locale = 'en-US'): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
@@ -58,25 +54,25 @@ export function generateId(): string {
 export function getInitials(
   firstName?: string | null,
   lastName?: string | null,
-  fallbackName?: string | null,
+  fallbackName?: string | null
 ): string {
   if (firstName && lastName) {
-    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
   }
   if (firstName) {
-    return firstName.charAt(0).toUpperCase();
+    return firstName.charAt(0).toUpperCase()
   }
   if (lastName) {
-    return lastName.charAt(0).toUpperCase();
+    return lastName.charAt(0).toUpperCase()
   }
   if (fallbackName) {
     return fallbackName
-      .split(" ")
+      .split(' ')
       .filter(Boolean)
       .map((n) => n.charAt(0))
-      .join("")
+      .join('')
       .toUpperCase()
-      .slice(0, 2);
+      .slice(0, 2)
   }
-  return "U";
+  return 'U'
 }

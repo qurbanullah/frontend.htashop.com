@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet } from 'react-router-dom'
 
 /**
  * Centered layout for auth pages.
@@ -11,5 +11,5 @@ export function AuthLayout() {
         <Outlet />
       </main>
     </div>
-  );
+  )
 }

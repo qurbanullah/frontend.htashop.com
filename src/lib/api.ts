@@ -1,16 +1,17 @@
 // Re-export shim — use @/api/client and @/api/auth for new code
-export { default, getApiUrl, api } from "@/api/client";
-export { authApi } from "@/api/auth";
-export { parseApiResponse, ApiError, isApiError } from "@/lib/api-response";
+
+export type {
+  AccountCheckResponse,
+  LoginRequest,
+  MessageResponse,
+  NormalizedAuthResponse,
+  RegisterRequest,
+} from '@/api/auth'
+export { authApi } from '@/api/auth'
+export { api, default, getApiUrl } from '@/api/client'
 export type {
   ApiResponse,
-  PaginatedResponse,
   ErrorResponse,
-} from "@/lib/api-response";
-export type {
-  LoginRequest,
-  RegisterRequest,
-  NormalizedAuthResponse,
-  AccountCheckResponse,
-  MessageResponse,
-} from "@/api/auth";
+  PaginatedResponse,
+} from '@/lib/api-response'
+export { ApiError, isApiError, parseApiResponse } from '@/lib/api-response'

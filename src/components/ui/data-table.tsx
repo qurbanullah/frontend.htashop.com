@@ -1,5 +1,14 @@
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
+  Search,
+} from 'lucide-react'
 import * as React from 'react'
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -8,15 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 export interface Column<T> {
   key: string
   label: string
   sortable?: boolean
-  render?: (value: any, row: T) => React.ReactNode
+  render?: (value: unknown, row: T) => React.ReactNode
   className?: string
   headerClassName?: string
 }
@@ -49,6 +56,58 @@ export interface DataTableProps<T> {
   emptyMessage?: string
 }
 
+function TableStateRow({ colSpan, children }: { colSpan: number; children: React.ReactNode }) {
+  return (
+    <TableRow>
+      <TableCell colSpan={colSpan} className="h-24 text-center">
+        {children}
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function DataRow<T>({
+  row,
+  rowId,
+  columns,
+  selectable,
+  isSelected,
+  onRowSelect,
+  actions,
+}: {
+  row: T
+  rowId: string | number
+  columns: Column<T>[]
+  selectable: boolean
+  isSelected: boolean
+  onRowSelect?: (id: string | number) => void
+  actions?: (row: T) => React.ReactNode
+}) {
+  return (
+    <TableRow data-state={isSelected ? 'selected' : undefined}>
+      {selectable && (
+        <TableCell>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onRowSelect?.(rowId)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
+          />
+        </TableCell>
+      )}
+      {columns.map((column) => {
+        const value = (row as Record<string, unknown>)[column.key]
+        return (
+          <TableCell key={column.key} className={cn(column.className)}>
+            {column.render ? column.render(value, row) : (value as React.ReactNode)}
+          </TableCell>
+        )
+      })}
+      {actions && <TableCell className="text-right">{actions(row)}</TableCell>}
+    </TableRow>
+  )
+}
+
 export function DataTable<T>({
   data,
   columns,
@@ -65,7 +124,7 @@ export function DataTable<T>({
   selectable = false,
   selectedRows = new Set(),
   onRowSelect,
-  getRowId = (row: any) => row.id,
+  getRowId = (row: T) => (row as { id: string | number }).id,
   actions,
   className,
   emptyMessage = 'No data available',
@@ -80,26 +139,24 @@ export function DataTable<T>({
 
   const handleSelectAll = (checked: boolean) => {
     if (!onRowSelect) return
-    data.forEach((row) => {
+    for (const row of data) {
       const id = getRowId(row)
-      if (checked && !selectedRows.has(id)) {
-        onRowSelect(id)
-      } else if (!checked && selectedRows.has(id)) {
-        onRowSelect(id)
-      }
-    })
+      const shouldSelect = checked !== selectedRows.has(id)
+      if (shouldSelect) onRowSelect(id)
+    }
   }
 
-  const isAllSelected =
-    data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)))
+  const isAllSelected = data.length > 0 && data.every((row) => selectedRows.has(getRowId(row)))
+
+  const colSpan = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)
 
   return (
     <div className={cn('space-y-4', className)}>
       {/* Search Bar */}
       {searchable && (
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <Input
               type="text"
               placeholder={searchPlaceholder}
@@ -112,7 +169,7 @@ export function DataTable<T>({
       )}
 
       {/* Table */}
-      <div className="rounded-md border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <div className="rounded-md border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
         <Table>
           <TableHeader>
             <TableRow>
@@ -122,15 +179,12 @@ export function DataTable<T>({
                     type="checkbox"
                     checked={isAllSelected}
                     onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
                   />
                 </TableHead>
               )}
               {columns.map((column) => (
-                <TableHead
-                  key={column.key}
-                  className={cn(column.headerClassName)}
-                >
+                <TableHead key={column.key} className={cn(column.headerClassName)}>
                   {column.label}
                 </TableHead>
               ))}
@@ -139,63 +193,34 @@ export function DataTable<T>({
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
-                  className="h-24 text-center"
-                >
-                  <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Loading...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <TableStateRow colSpan={colSpan}>
+                <div className="flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              </TableStateRow>
             ) : error ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
-                  className="h-24 text-center text-red-600 dark:text-red-400"
-                >
-                  {error}
-                </TableCell>
-              </TableRow>
+              <TableStateRow colSpan={colSpan}>
+                <span className="text-red-600 dark:text-red-400">{error}</span>
+              </TableStateRow>
             ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0)}
-                  className="h-24 text-center text-gray-500 dark:text-gray-400"
-                >
-                  {emptyMessage}
-                </TableCell>
-              </TableRow>
+              <TableStateRow colSpan={colSpan}>
+                <span className="text-gray-500 dark:text-gray-400">{emptyMessage}</span>
+              </TableStateRow>
             ) : (
-              data.map((row, idx) => {
+              data.map((row) => {
                 const rowId = getRowId(row)
-                const isSelected = selectedRows.has(rowId)
                 return (
-                  <TableRow key={idx} data-state={isSelected ? 'selected' : undefined}>
-                    {selectable && (
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => onRowSelect?.(rowId)}
-                          className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 dark:bg-gray-800"
-                        />
-                      </TableCell>
-                    )}
-                    {columns.map((column) => {
-                      const value = (row as any)[column.key]
-                      return (
-                        <TableCell key={column.key} className={cn(column.className)}>
-                          {column.render ? column.render(value, row) : value}
-                        </TableCell>
-                      )
-                    })}
-                    {actions && (
-                      <TableCell className="text-right">{actions(row)}</TableCell>
-                    )}
-                  </TableRow>
+                  <DataRow
+                    key={rowId}
+                    row={row}
+                    rowId={rowId}
+                    columns={columns}
+                    selectable={selectable}
+                    isSelected={selectedRows.has(rowId)}
+                    onRowSelect={onRowSelect}
+                    actions={actions}
+                  />
                 )
               })
             )}
@@ -206,17 +231,11 @@ export function DataTable<T>({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-2">
-          <div className="flex-1 text-sm text-gray-700 dark:text-gray-300">
+          <div className="flex-1 text-gray-700 text-sm dark:text-gray-300">
             {totalItems && (
               <span>
-                Showing{' '}
-                <span className="font-medium">
-                  {(currentPage - 1) * pageSize + 1}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(currentPage * pageSize, totalItems)}
-                </span>{' '}
+                Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * pageSize, totalItems)}</span>{' '}
                 of <span className="font-medium">{totalItems}</span> results
               </span>
             )}
@@ -238,7 +257,7 @@ export function DataTable<T>({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
+            <span className="px-2 text-gray-700 text-sm dark:text-gray-300">
               Page {currentPage} of {totalPages}
             </span>
             <Button

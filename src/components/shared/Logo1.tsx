@@ -1,11 +1,11 @@
 interface LogoProps {
-  width?: number;
-  height?: number;
-  className?: string;
+  width?: number
+  height?: number
+  className?: string
 }
 
-export function Logo({ width = 160, height, className = "" }: LogoProps) {
-  const h = height ?? Math.round(width * 0.25);
+export function Logo({ width = 160, height, className = '' }: LogoProps) {
+  const h = height ?? Math.round(width * 0.25)
 
   return (
     <svg
@@ -37,5 +37,5 @@ export function Logo({ width = 160, height, className = "" }: LogoProps) {
         <tspan className="logo-shop">shop</tspan>
       </text>
     </svg>
-  );
+  )
 }

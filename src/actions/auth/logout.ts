@@ -1,5 +1,5 @@
-import { authApi } from "@/api/auth";
+import { authApi } from '@/api/auth'
 
 export async function logoutAction(): Promise<{ success: boolean; message: string }> {
-  return authApi.logout();
+  return authApi.logout()
 }

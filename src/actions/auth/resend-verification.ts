@@ -1,5 +1,5 @@
-import { authApi, type MessageResponse } from "@/api/auth";
+import { authApi, type MessageResponse } from '@/api/auth'
 
 export async function resendVerificationAction(email: string): Promise<MessageResponse> {
-  return authApi.resendVerificationEmail(email);
+  return authApi.resendVerificationEmail(email)
 }

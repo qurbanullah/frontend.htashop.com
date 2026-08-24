@@ -1,25 +1,25 @@
-import { Link } from "react-router-dom";
-import { Package, ShoppingCart } from "lucide-react";
-import type { CatalogProduct } from "@/api/catalog";
-import { useCartStore } from "@/stores/cart";
-import { paths } from "@/routes/paths";
+import { Package, ShoppingCart } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import type { CatalogProduct } from '@/api/catalog'
+import { paths } from '@/routes/paths'
+import { useCartStore } from '@/stores/cart'
 
 function priceInfo(product: CatalogProduct) {
-  const price = Number(product.price);
-  const sale = Number(product.sale_price);
+  const price = Number(product.price)
+  const sale = Number(product.sale_price)
 
   if (Number.isFinite(sale) && sale > 0 && sale < price) {
-    return { display: sale, original: price };
+    return { display: sale, original: price }
   }
 
-  return { display: price, original: null };
+  return { display: price, original: null }
 }
 
 export function ProductCard({ product }: { product: CatalogProduct }) {
-  const brand = product.brands?.[0]?.name;
-  const price = priceInfo(product);
-  const addToCart = useCartStore((s) => s.addItem);
-  const cartLoading = useCartStore((s) => s.isLoading);
+  const brand = product.brands?.[0]?.name
+  const price = priceInfo(product)
+  const addToCart = useCartStore((s) => s.addItem)
+  const cartLoading = useCartStore((s) => s.isLoading)
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
@@ -42,7 +42,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
 
       <div className="flex flex-1 flex-col p-4">
         {brand && (
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">{brand}</p>
+          <p className="font-medium text-gray-400 text-xs uppercase tracking-wide">{brand}</p>
         )}
         <Link to={`${paths.products}/${product.route_key}`}>
           <h3 className="mt-1 line-clamp-2 font-semibold text-gray-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
@@ -50,20 +50,25 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           </h3>
         </Link>
         {product.summary && (
-          <p className="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">{product.summary}</p>
+          <p className="mt-1 line-clamp-2 text-gray-500 text-sm dark:text-gray-400">
+            {product.summary}
+          </p>
         )}
 
         <div className="mt-4 flex items-center justify-between gap-3 pt-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-gray-900 dark:text-white">
-              ${Number.isFinite(price.display) ? price.display.toLocaleString() : "—"}
+            <span className="font-bold text-gray-900 text-lg dark:text-white">
+              ${Number.isFinite(price.display) ? price.display.toLocaleString() : '—'}
             </span>
             {price.original !== null && (
-              <span className="text-sm text-gray-400 line-through">${price.original.toLocaleString()}</span>
+              <span className="text-gray-400 text-sm line-through">
+                ${price.original.toLocaleString()}
+              </span>
             )}
           </div>
 
           <button
+            type="button"
             onClick={() => addToCart({ product_id: product.id, quantity: 1 })}
             disabled={cartLoading}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
@@ -74,5 +79,5 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,6 +1,6 @@
-import { Outlet } from "react-router-dom";
-import { TopBar } from "@/components/layouts/TopBar";
-import { AccountSidebar } from "@/components/account/AccountSidebar";
+import { Outlet } from 'react-router-dom'
+import { AccountSidebar } from '@/components/account/AccountSidebar'
+import { TopBar } from '@/components/layouts/TopBar'
 
 /**
  * Buyer account shell — keeps the storefront top bar (search + categories)
@@ -17,5 +17,5 @@ export function AccountLayout() {
         </main>
       </div>
     </div>
-  );
+  )
 }

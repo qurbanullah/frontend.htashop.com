@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom";
-import { TopBar } from "@/components/layouts/TopBar";
+import { Outlet } from 'react-router-dom'
+import { TopBar } from '@/components/layouts/TopBar'
 
 /**
  * Public storefront layout — top navigation plus page content.
@@ -13,5 +13,5 @@ export function PublicLayout() {
         <Outlet />
       </main>
     </div>
-  );
+  )
 }

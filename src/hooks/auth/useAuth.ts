@@ -1,25 +1,49 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/stores/auth";
-import { useQueryClient } from "@tanstack/react-query";
-import { isApiError } from "@/lib/api-response";
-import type { LoginRequest, RegisterRequest } from "@/api/auth";
-import { loginAction } from "@/actions/auth/login";
-import { registerAction } from "@/actions/auth/register";
-import { logoutAction } from "@/actions/auth/logout";
-import { getCurrentUserAction } from "@/actions/auth/get-current-user";
-import { verifyEmailAction } from "@/actions/auth/verify-email";
-import { resendVerificationAction } from "@/actions/auth/resend-verification";
-import { checkAccountAction } from "@/actions/auth/check-account";
+import { useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { checkAccountAction } from '@/actions/auth/check-account'
+import { getCurrentUserAction } from '@/actions/auth/get-current-user'
+import { loginAction } from '@/actions/auth/login'
+import { logoutAction } from '@/actions/auth/logout'
+import { registerAction } from '@/actions/auth/register'
+import { resendVerificationAction } from '@/actions/auth/resend-verification'
+import { verifyEmailAction } from '@/actions/auth/verify-email'
+import type { LoginRequest, RegisterRequest } from '@/api/auth'
+import { isApiError } from '@/lib/api-response'
+import { useAuthStore } from '@/stores/auth'
 
 function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) return error.message || fallback;
-  return fallback;
+  if (error instanceof Error) return error.message || fallback
+  return fallback
+}
+
+/**
+ * Shared error handling for auth flows — surfaces validation errors when the
+ * API returns them, otherwise shows a general message.
+ */
+function handleAuthError(
+  error: unknown,
+  setError: (message: string) => void,
+  setValidationErrors: (errors: Record<string, string[]> | null) => void,
+  fallback: string,
+  networkFallback: string
+): string {
+  if (isApiError(error)) {
+    if (error.errors) {
+      setValidationErrors(error.errors)
+    } else {
+      setError(error.message || fallback)
+    }
+  } else {
+    console.error('Auth error:', error)
+    setError(networkFallback)
+  }
+  return getErrorMessage(error, fallback)
 }
 
 export function useAuth() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const {
     login,
     logout,
@@ -31,157 +55,163 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     error,
-  } = useAuthStore();
+  } = useAuthStore()
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null);
-  const [emailExists, setEmailExists] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null)
+  const [emailExists, setEmailExists] = useState(false)
 
   const handleLogin = async (credentials: LoginRequest) => {
     try {
-      setLoading(true);
-      clearError();
-      setValidationErrors(null);
+      setLoading(true)
+      clearError()
+      setValidationErrors(null)
 
-      const response = await loginAction(credentials);
+      const response = await loginAction(credentials)
 
       if (response.success) {
-        login(response.user, response.token);
-        navigate("/dashboard", { replace: true });
-        return { success: true };
+        login(response.user, response.token)
+        navigate('/dashboard', { replace: true })
+        return { success: true }
       }
-      setError("Login failed. Please try again.");
-      return { success: false, message: "Login failed" };
+      setError('Login failed. Please try again.')
+      return { success: false, message: 'Login failed' }
     } catch (error: unknown) {
-      if (isApiError(error)) {
-        if (error.requiresEmailVerification && error.email) {
-          navigate(`/verify-email?email=${encodeURIComponent(error.email)}`, { replace: true });
-          return { success: false, message: "email_verification_required" };
-        }
-        if (error.errors) {
-          setValidationErrors(error.errors);
-        } else {
-          setError(error.message || "Login failed. Please check your credentials.");
-        }
-      } else {
-        console.error("Login error:", error);
-        setError("Network error. Please check your connection.");
+      if (isApiError(error) && error.requiresEmailVerification && error.email) {
+        navigate(`/verify-email?email=${encodeURIComponent(error.email)}`, { replace: true })
+        return { success: false, message: 'email_verification_required' }
       }
-      return { success: false, message: getErrorMessage(error, "Login failed") };
+      const message = handleAuthError(
+        error,
+        setError,
+        setValidationErrors,
+        'Login failed. Please check your credentials.',
+        'Network error. Please check your connection.'
+      )
+      return { success: false, message }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleRegister = async (userData: RegisterRequest) => {
     try {
-      setLoading(true);
-      clearError();
-      setValidationErrors(null);
-      setEmailExists(false);
+      setLoading(true)
+      clearError()
+      setValidationErrors(null)
+      setEmailExists(false)
 
-      const accountCheck = await checkAccountAction(userData.email);
+      const accountCheck = await checkAccountAction(userData.email)
       if (accountCheck.exists) {
-        setEmailExists(true);
-        setValidationErrors({ email: ["An account with this email already exists."] });
-        return { success: false, message: "An account with this email already exists." };
+        setEmailExists(true)
+        setValidationErrors({ email: ['An account with this email already exists.'] })
+        return { success: false, message: 'An account with this email already exists.' }
       }
 
-      const response = await registerAction(userData);
+      const response = await registerAction(userData)
       if (response.success) {
-        navigate(`/verify-email?email=${encodeURIComponent(response.user.email)}`, { replace: true });
-        return { success: true };
+        navigate(`/verify-email?email=${encodeURIComponent(response.user.email)}`, {
+          replace: true,
+        })
+        return { success: true }
       }
-      setError("Registration failed. Please try again.");
-      return { success: false, message: "Registration failed" };
+      setError('Registration failed. Please try again.')
+      return { success: false, message: 'Registration failed' }
     } catch (error: unknown) {
-      if (isApiError(error)) {
-        if (error.emailExists) setEmailExists(true);
-        if (error.errors) {
-          setValidationErrors(error.errors);
-        } else if (!error.emailExists) {
-          setError(error.message || "Registration failed. Please check your information.");
-        }
-      } else {
-        console.error("Registration error:", error);
-        setError("Network error. Please check your connection.");
+      if (isApiError(error) && error.emailExists) {
+        setEmailExists(true)
+        return { success: false, message: 'An account with this email already exists.' }
       }
-      return { success: false, message: getErrorMessage(error, "Registration failed") };
+      const message = handleAuthError(
+        error,
+        setError,
+        setValidationErrors,
+        'Registration failed. Please check your information.',
+        'Network error. Please check your connection.'
+      )
+      return { success: false, message }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleLogout = async () => {
     try {
-      setLoading(true);
-      try { await logoutAction(); } catch { /* ignore */ }
-      logout();
-      queryClient.clear();
-      navigate("/login", { replace: true });
-      return { success: true };
+      setLoading(true)
+      try {
+        await logoutAction()
+      } catch {
+        /* ignore */
+      }
+      logout()
+      queryClient.clear()
+      navigate('/login', { replace: true })
+      return { success: true }
     } catch (error: unknown) {
-      console.error("Logout error:", error);
-      logout();
-      queryClient.clear();
-      navigate("/login", { replace: true });
-      return { success: false, message: getErrorMessage(error, "Logout failed") };
+      console.error('Logout error:', error)
+      logout()
+      queryClient.clear()
+      navigate('/login', { replace: true })
+      return { success: false, message: getErrorMessage(error, 'Logout failed') }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const getCurrentUser = async () => {
     try {
-      setLoading(true);
-      const response = await getCurrentUserAction();
+      setLoading(true)
+      const response = await getCurrentUserAction()
       if (response.success && response.data) {
-        updateUser(response.data);
-        return { success: true, user: response.data };
+        updateUser(response.data)
+        return { success: true, user: response.data }
       }
-      setError("Failed to fetch user data");
-      return { success: false };
+      setError('Failed to fetch user data')
+      return { success: false }
     } catch (error: unknown) {
-      console.error("Get user error:", error);
-      setError("Failed to fetch user data");
-      return { success: false, message: getErrorMessage(error, "Failed to fetch user data") };
+      console.error('Get user error:', error)
+      setError('Failed to fetch user data')
+      return { success: false, message: getErrorMessage(error, 'Failed to fetch user data') }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const verifyEmail = async (token: string, email: string) => {
     try {
-      setLoading(true);
-      clearError();
-      const response = await verifyEmailAction(token, email);
-      if (response.success) return { success: true, message: response.message };
-      setError(response.message || "Email verification failed");
-      return { success: false, message: response.message };
+      setLoading(true)
+      clearError()
+      const response = await verifyEmailAction(token, email)
+      if (response.success) return { success: true, message: response.message }
+      setError(response.message || 'Email verification failed')
+      return { success: false, message: response.message }
     } catch (error: unknown) {
-      console.error("Email verification error:", error);
-      setError("Email verification failed");
-      return { success: false, message: getErrorMessage(error, "Email verification failed") };
+      console.error('Email verification error:', error)
+      setError('Email verification failed')
+      return { success: false, message: getErrorMessage(error, 'Email verification failed') }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const resendVerificationEmail = async (email: string) => {
     try {
-      setLoading(true);
-      clearError();
-      const response = await resendVerificationAction(email);
-      if (response.success) return { success: true, message: response.message };
-      setError(response.message || "Failed to resend verification email");
-      return { success: false, message: response.message };
+      setLoading(true)
+      clearError()
+      const response = await resendVerificationAction(email)
+      if (response.success) return { success: true, message: response.message }
+      setError(response.message || 'Failed to resend verification email')
+      return { success: false, message: response.message }
     } catch (error: unknown) {
-      console.error("Resend verification error:", error);
-      setError("Failed to resend verification email");
-      return { success: false, message: getErrorMessage(error, "Failed to resend verification email") };
+      console.error('Resend verification error:', error)
+      setError('Failed to resend verification email')
+      return {
+        success: false,
+        message: getErrorMessage(error, 'Failed to resend verification email'),
+      }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return {
     user,
@@ -199,5 +229,5 @@ export function useAuth() {
     clearError,
     clearEmailExists: () => setEmailExists(false),
     clearValidationErrors: () => setValidationErrors(null),
-  };
+  }
 }

@@ -1,20 +1,20 @@
-import { lazy } from "react";
-import { Route } from "react-router-dom";
-import { paths } from "@/routes/paths";
-import { AuthLayout } from "@/components/layouts/AuthLayout";
-import { PublicLayout } from "@/components/layouts/PublicLayout";
+import { lazy } from 'react'
+import { Route } from 'react-router-dom'
+import { AuthLayout } from '@/components/layouts/AuthLayout'
+import { PublicLayout } from '@/components/layouts/PublicLayout'
+import { paths } from '@/routes/paths'
 
-const HomePage = lazy(() => import("@/pages/public/HomePage"));
-const ProductSearchPage = lazy(() => import("@/pages/public/ProductSearchPage"));
-const ProductDetailPage = lazy(() => import("@/pages/public/ProductDetailPage"));
-const CheckoutPage = lazy(() => import("@/pages/public/CheckoutPage"));
-const OrderConfirmationPage = lazy(() => import("@/pages/public/OrderConfirmationPage"));
-const PrivacyPolicyPage = lazy(() => import("@/pages/public/legal/PrivacyPolicyPage"));
-const TermsOfUsePage = lazy(() => import("@/pages/public/legal/TermsOfUsePage"));
-const CookiesPolicyPage = lazy(() => import("@/pages/public/legal/CookiesPolicyPage"));
-const RefundPolicyPage = lazy(() => import("@/pages/public/legal/RefundPolicyPage"));
-const VerifyEmail = lazy(() => import("@/pages/auth/VerifyEmail"));
-const NotFound = lazy(() => import("@/pages/error/NotFound"));
+const HomePage = lazy(() => import('@/pages/public/HomePage'))
+const ProductSearchPage = lazy(() => import('@/pages/public/ProductSearchPage'))
+const ProductDetailPage = lazy(() => import('@/pages/public/ProductDetailPage'))
+const CheckoutPage = lazy(() => import('@/pages/public/CheckoutPage'))
+const OrderConfirmationPage = lazy(() => import('@/pages/public/OrderConfirmationPage'))
+const PrivacyPolicyPage = lazy(() => import('@/pages/public/legal/PrivacyPolicyPage'))
+const TermsOfUsePage = lazy(() => import('@/pages/public/legal/TermsOfUsePage'))
+const CookiesPolicyPage = lazy(() => import('@/pages/public/legal/CookiesPolicyPage'))
+const RefundPolicyPage = lazy(() => import('@/pages/public/legal/RefundPolicyPage'))
+const VerifyEmail = lazy(() => import('@/pages/auth/VerifyEmail'))
+const NotFound = lazy(() => import('@/pages/error/NotFound'))
 
 /**
  * Public routes — no auth guard, no redirect.
@@ -27,7 +27,10 @@ export function PublicRoutes() {
         <Route path={paths.products} element={<ProductSearchPage />} />
         <Route path={`${paths.products}/:slugUuid`} element={<ProductDetailPage />} />
         <Route path={paths.checkout} element={<CheckoutPage />} />
-        <Route path={`${paths.orderConfirmation}/:uuid/confirmation`} element={<OrderConfirmationPage />} />
+        <Route
+          path={`${paths.orderConfirmation}/:uuid/confirmation`}
+          element={<OrderConfirmationPage />}
+        />
         <Route path={paths.policiesPrivacy} element={<PrivacyPolicyPage />} />
         <Route path={paths.policiesTerms} element={<TermsOfUsePage />} />
         <Route path={paths.policiesCookies} element={<CookiesPolicyPage />} />
@@ -39,5 +42,5 @@ export function PublicRoutes() {
         <Route path={paths.verifyEmail} element={<VerifyEmail />} />
       </Route>
     </>
-  );
+  )
 }

@@ -20,7 +20,7 @@ export function validateEnvironment() {
     for (const error of errors) {
       console.error(`   - ${error}`)
     }
-    
+
     // In production, show a user-friendly error
     if (ENV_CONFIG.PROD) {
       throw new Error(

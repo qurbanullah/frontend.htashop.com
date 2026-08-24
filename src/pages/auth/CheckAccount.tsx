@@ -1,45 +1,33 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import {
-  ArrowLeft,
-  Mail,
-  CheckCircle,
-  XCircle,
-  UserCheck,
-  LogIn,
-  UserPlus,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import api from "@/lib/api";
-import { Logo } from "@/components/shared/Logo";
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ArrowLeft, CheckCircle, LogIn, Mail, UserCheck, UserPlus, XCircle } from 'lucide-react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { Link } from 'react-router-dom'
+import { z } from 'zod'
+import { Logo } from '@/components/shared/Logo'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import api from '@/lib/api'
+
+import { isApiError } from '@/lib/api-response'
 
 const checkAccountSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
+  email: z.string().email('Please enter a valid email address'),
+})
 
-type CheckAccountForm = z.infer<typeof checkAccountSchema>;
+type CheckAccountForm = z.infer<typeof checkAccountSchema>
 
 interface AccountCheckResult {
-  exists: boolean;
-  message: string;
+  exists: boolean
+  message: string
 }
 
 export default function CheckAccount() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AccountCheckResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<AccountCheckResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const {
     register,
@@ -47,65 +35,61 @@ export default function CheckAccount() {
     formState: { errors },
   } = useForm<CheckAccountForm>({
     resolver: zodResolver(checkAccountSchema),
-  });
+  })
 
   const onSubmit = async (data: CheckAccountForm) => {
     try {
-      setLoading(true);
-      setError(null);
-      setResult(null);
+      setLoading(true)
+      setError(null)
+      setResult(null)
 
       const response = await api
-        .post("check-account", {
+        .post('check-account', {
           json: { email: data.email },
         })
-        .json<AccountCheckResult>();
+        .json<AccountCheckResult>()
 
-      setResult(response);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to check account. Please try again.",
-      );
+      setResult(response)
+    } catch (err: unknown) {
+      const message =
+        isApiError(err) && err.message ? err.message : 'Failed to check account. Please try again.'
+      setError(message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-4 py-8 bg-linear-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-50 via-white to-blue-50 px-4 py-8 sm:px-6 lg:px-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="w-full max-w-xl">
         {/* Back Link */}
         <Link
           to="/login"
-          className="inline-flex items-center gap-2 mb-6 text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+          className="mb-6 inline-flex items-center gap-2 font-medium text-slate-600 text-sm transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="h-4 w-4" />
           Back to Login
         </Link>
 
         {/* Header */}
         <div className="-mb-6 text-center">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center gap-3"
-          >
+          <Link to="/" className="inline-flex items-center justify-center gap-3">
             <div className="dark:hidden">
-            <Logo width={120} />
+              <Logo width={120} />
             </div>
           </Link>
           {/* <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Journal Management System</p> */}
         </div>
 
-        <Card className="overflow-hidden bg-white border-2 border-blue-200 shadow-2xl dark:border-blue-900/50 dark:bg-gray-800">
-          <CardHeader className="pb-5 bg-linear-to-br from-slate-100 to-slate-200 dark:from-gray-800 dark:to-gray-700">
-            <div className="flex items-center justify-center mx-auto mb-3 bg-white rounded-full shadow-lg w-14 h-14 dark:bg-gray-800">
-              <UserCheck className="text-blue-600 w-7 h-7 dark:text-blue-400" />
+        <Card className="overflow-hidden border-2 border-blue-200 bg-white shadow-2xl dark:border-blue-900/50 dark:bg-gray-800">
+          <CardHeader className="bg-linear-to-br from-slate-100 to-slate-200 pb-5 dark:from-gray-800 dark:to-gray-700">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-lg dark:bg-gray-800">
+              <UserCheck className="h-7 w-7 text-blue-600 dark:text-blue-400" />
             </div>
-            <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">
+            <CardTitle className="text-center font-bold text-2xl text-gray-900 dark:text-white">
               Find Your Account
             </CardTitle>
-            <CardDescription className="text-sm text-center text-gray-900 dark:text-white">
+            <CardDescription className="text-center text-gray-900 text-sm dark:text-white">
               Check if your email is registered in our system
             </CardDescription>
           </CardHeader>
@@ -114,10 +98,11 @@ export default function CheckAccount() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Error Message */}
               {error && (
-                <div className="flex items-start gap-3 px-4 py-3 text-sm border-2 border-red-200 rounded-lg bg-red-50 dark:bg-red-900/20 dark:border-red-800">
+                <div className="flex items-start gap-3 rounded-lg border-2 border-red-200 bg-red-50 px-4 py-3 text-sm dark:border-red-800 dark:bg-red-900/20">
                   <svg
-                    className="w-5 h-5 text-red-600 shrink-0 dark:text-red-400"
+                    className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400"
                     fill="currentColor"
+                    aria-hidden="true"
                     viewBox="0 0 20 20"
                   >
                     <path
@@ -126,32 +111,30 @@ export default function CheckAccount() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-red-700 dark:text-red-300">
-                    {error}
-                  </span>
+                  <span className="text-red-700 dark:text-red-300">{error}</span>
                 </div>
               )}
 
               {/* Result Message */}
               {result && (
                 <div
-                  className={`flex items-start gap-3 px-4 py-4 border-2 rounded-lg ${
+                  className={`flex items-start gap-3 rounded-lg border-2 px-4 py-4 ${
                     result.exists
-                      ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800"
-                      : "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
+                      ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20'
+                      : 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20'
                   }`}
                 >
                   {result.exists ? (
-                    <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <CheckCircle className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <XCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <XCircle className="h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" />
                   )}
                   <div className="flex-1">
                     <p
-                      className={`font-semibold mb-1 ${
+                      className={`mb-1 font-semibold ${
                         result.exists
-                          ? "text-emerald-900 dark:text-emerald-100"
-                          : "text-amber-900 dark:text-amber-100"
+                          ? 'text-emerald-900 dark:text-emerald-100'
+                          : 'text-amber-900 dark:text-amber-100'
                       }`}
                     >
                       {result.message}
@@ -178,7 +161,7 @@ export default function CheckAccount() {
                   htmlFor="email"
                   className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200"
                 >
-                  <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Email Address
                 </Label>
                 <div className="relative">
@@ -186,19 +169,20 @@ export default function CheckAccount() {
                     id="email"
                     type="email"
                     placeholder="Email Address"
-                    {...register("email")}
-                    className={`pl-10 h-11 text-base border-2 transition-all ${
+                    {...register('email')}
+                    className={`h-11 border-2 pl-10 text-base transition-all ${
                       errors.email
-                        ? "border-red-500 focus:ring-red-500"
-                        : "border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600"
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
                     }`}
                   />
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                     <svg
-                      className="w-5 h-5 text-slate-400 dark:text-slate-500"
+                      className="h-5 w-5 text-slate-400 dark:text-slate-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <path
                         strokeLinecap="round"
@@ -210,11 +194,12 @@ export default function CheckAccount() {
                   </div>
                 </div>
                 {errors.email && (
-                  <p className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400">
+                  <p className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400">
                     <svg
-                      className="w-4 h-4"
+                      className="h-4 w-4"
                       fill="currentColor"
                       viewBox="0 0 20 20"
+                      aria-hidden="true"
                     >
                       <path
                         fillRule="evenodd"
@@ -230,17 +215,17 @@ export default function CheckAccount() {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="relative w-full overflow-hidden text-base font-semibold text-white transition-all bg-blue-600 shadow-lg h-11 hover:bg-blue-700 hover:shadow-xl dark:bg-blue-600 dark:hover:bg-blue-700 group"
+                className="group relative h-11 w-full overflow-hidden bg-blue-600 font-semibold text-base text-white shadow-lg transition-all hover:bg-blue-700 hover:shadow-xl dark:bg-blue-600 dark:hover:bg-blue-700"
                 disabled={loading}
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 mr-2 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                    <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     Checking Account...
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">
-                    <UserCheck className="w-5 h-5 mr-2 transition-transform group-hover:scale-110" />
+                    <UserCheck className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
                     Check Account Status
                   </div>
                 )}
@@ -252,10 +237,10 @@ export default function CheckAccount() {
               <>
                 <div className="relative py-4">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-slate-300 dark:border-slate-600"></div>
+                    <div className="w-full border-slate-300 border-t dark:border-slate-600"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-slate-500 dark:bg-gray-800 dark:text-slate-400">
+                    <span className="bg-white px-4 text-slate-500 dark:bg-gray-800 dark:text-slate-400">
                       What's next?
                     </span>
                   </div>
@@ -267,21 +252,22 @@ export default function CheckAccount() {
                       {/* Go to Login */}
                       <Link
                         to="/login"
-                        className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition-all bg-blue-600 rounded-lg shadow-md hover:bg-blue-700 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700 group"
+                        className="group flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700"
                       >
-                        <LogIn className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                        <LogIn className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                         Go to Login
                       </Link>
                       {/* Forgot Password */}
                       <Link
                         to="/forgot-password"
-                        className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-all border-2 rounded-lg text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+                        className="flex items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 text-sm transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <svg
-                          className="w-5 h-5"
+                          className="h-5 w-5"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
+                          aria-hidden="true"
                         >
                           <path
                             strokeLinecap="round"
@@ -298,18 +284,18 @@ export default function CheckAccount() {
                       {/* Create Account */}
                       <Link
                         to="/register"
-                        className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white transition-all rounded-lg shadow-md bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg dark:bg-emerald-600 dark:hover:bg-emerald-700 group"
+                        className="group flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg dark:bg-emerald-600 dark:hover:bg-emerald-700"
                       >
-                        <UserPlus className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
                         Create New Account
                       </Link>
                       {/* Try Another Email */}
                       <button
                         type="button"
                         onClick={() => setResult(null)}
-                        className="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-medium transition-all border-2 rounded-lg text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-800"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 text-sm transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
-                        <Mail className="w-5 h-5" />
+                        <Mail className="h-5 w-5" />
                         Try Another Email
                       </button>
                     </>
@@ -320,14 +306,11 @@ export default function CheckAccount() {
 
             {/* Additional Help */}
             {!result && (
-              <div className="p-4 mt-6 border rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                <p className="text-sm text-center text-slate-600 dark:text-slate-400">
-                  <span className="font-medium text-slate-900 dark:text-slate-200">
-                    Need help?
-                  </span>
+              <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-center text-slate-600 text-sm dark:text-slate-400">
+                  <span className="font-medium text-slate-900 dark:text-slate-200">Need help?</span>
                   <br />
-                  Enter your email address to verify if you're registered in the
-                  system.
+                  Enter your email address to verify if you're registered in the system.
                 </p>
               </div>
             )}
@@ -335,5 +318,5 @@ export default function CheckAccount() {
         </Card>
       </div>
     </div>
-  );
+  )
 }

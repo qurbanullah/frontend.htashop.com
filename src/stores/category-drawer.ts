@@ -1,10 +1,10 @@
-import { create } from "zustand";
+import { create } from 'zustand'
 
 interface CategoryDrawerState {
-  isOpen: boolean;
-  open: () => void;
-  close: () => void;
-  toggle: () => void;
+  isOpen: boolean
+  open: () => void
+  close: () => void
+  toggle: () => void
 }
 
 export const useCategoryDrawerStore = create<CategoryDrawerState>((set) => ({
@@ -12,4 +12,4 @@ export const useCategoryDrawerStore = create<CategoryDrawerState>((set) => ({
   open: () => set({ isOpen: true }),
   close: () => set({ isOpen: false }),
   toggle: () => set((state) => ({ isOpen: !state.isOpen })),
-}));
+}))

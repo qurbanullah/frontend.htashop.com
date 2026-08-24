@@ -28,8 +28,13 @@ html {
     transition: background-color 0.3s ease;
 }
 
-* {
-    -webkit-tap-highlight-color: transparent;
+/* Hide scrollbars on horizontal carousels while keeping them scrollable */
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
 
 :focus-visible {
@@ -38,13 +43,13 @@ html {
 }
 
 [data-toast-portal] {
-    z-index: 99999 !important;
+    z-index: 99999;
 }
 
 [data-radix-dialog-content] {
-    z-index: 40 !important;
+    z-index: 40;
 }
 
 [data-radix-dialog-overlay] {
-    z-index: 39 !important;
+    z-index: 39;
 }

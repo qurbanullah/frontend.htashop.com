@@ -10,8 +10,8 @@ export function PageSpinner() {
       aria-label="Loading"
       className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50 dark:bg-gray-900"
     >
-      <div className="w-10 h-10 border-4 border-gray-200 rounded-full border-t-blue-500 dark:border-gray-700 dark:border-t-blue-400 animate-spin" />
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-blue-500 dark:border-gray-700 dark:border-t-blue-400" />
       <span className="sr-only">Loading…</span>
     </div>
-  );
+  )
 }

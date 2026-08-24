@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { bannersApi, type Banner } from "@/api/banners";
+import { useQuery } from '@tanstack/react-query'
+import { type Banner, bannersApi } from '@/api/banners'
 
 export interface BannerContext {
-  categoryId?: number;
-  q?: string;
+  categoryId?: number
+  q?: string
 }
 
 /**
@@ -12,7 +12,7 @@ export interface BannerContext {
  */
 export function useBanners(placement: string, context?: BannerContext) {
   return useQuery({
-    queryKey: ["banners", placement, context?.categoryId ?? null, context?.q ?? ""],
+    queryKey: ['banners', placement, context?.categoryId ?? null, context?.q ?? ''],
     queryFn: () =>
       bannersApi.list({
         placement,
@@ -21,5 +21,5 @@ export function useBanners(placement: string, context?: BannerContext) {
       }),
     staleTime: 10 * 60 * 1000,
     placeholderData: (prev: Banner[] | undefined) => prev,
-  });
+  })
 }

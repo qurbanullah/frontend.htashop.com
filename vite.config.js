@@ -27,21 +27,21 @@ export default defineConfig({
         outDir: "dist",
         assetsDir: "assets",
         sourcemap: false,
-        minify: "esbuild",
+        // minify defaults to the rolldown/oxc minifier — esbuild is not installed
         target: "esnext",
         rollupOptions: {
             output: {
-                manualChunks: {
-                    vendor: ["react", "react-dom"],
-                    router: ["react-router-dom"],
-                    ui: [
-                        "@radix-ui/react-dialog",
-                        "@radix-ui/react-dropdown-menu",
-                        "@radix-ui/react-toast",
-                        "@radix-ui/react-tooltip",
-                    ],
-                    utils: ["ky", "@tanstack/react-query", "zustand"],
-                    animations: ["framer-motion"],
+                // Rolldown-vite requires a function (object form is not supported).
+                // Preserves the previous chunk groupings by module path.
+                manualChunks(id) {
+                    if (!id.includes("node_modules")) return undefined;
+                    if (id.includes("@radix-ui")) return "ui";
+                    if (id.includes("react-router-dom")) return "router";
+                    if (id.includes("@tanstack")) return "utils";
+                    if (id.includes("framer-motion")) return "animations";
+                    if (id.includes("ky") || id.includes("zustand")) return "utils";
+                    if (id.includes("react")) return "vendor";
+                    return undefined;
                 },
             },
         },

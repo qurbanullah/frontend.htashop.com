@@ -4,23 +4,22 @@ import { cn } from '@/lib/utils'
 /**
  * Visually hides content while keeping it accessible to screen readers
  */
-const VisuallyHidden = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement>
->(({ className, ...props }, ref) => (
-  <span
-    ref={ref}
-    className={cn(
-      'absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0',
-      className
-    )}
-    style={{
-      clip: 'rect(0, 0, 0, 0)',
-      clipPath: 'inset(50%)',
-    }}
-    {...props}
-  />
-))
+const VisuallyHidden = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(
+  ({ className, ...props }, ref) => (
+    <span
+      ref={ref}
+      className={cn(
+        'absolute -m-px h-px w-px overflow-hidden whitespace-nowrap border-0 p-0',
+        className
+      )}
+      style={{
+        clip: 'rect(0, 0, 0, 0)',
+        clipPath: 'inset(50%)',
+      }}
+      {...props}
+    />
+  )
+)
 VisuallyHidden.displayName = 'VisuallyHidden'
 
 export { VisuallyHidden }
