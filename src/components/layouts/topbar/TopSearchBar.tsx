@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { type CatalogProduct, catalogApi } from '@/api/catalog'
+import { catalogApi, type SearchSuggestion } from '@/api/catalog'
 import type { Category } from '@/api/categories'
 import { Logo } from '@/components/shared/Logo'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
@@ -52,9 +52,9 @@ function SearchDropdown({
   onSelect,
 }: {
   isFetching: boolean
-  results: CatalogProduct[]
+  results: SearchSuggestion[]
   query: string
-  onSelect: () => void
+  onSelect: (product: SearchSuggestion | null) => void
 }) {
   if (isFetching) {
     return <div className="px-4 py-6 text-center text-gray-400 text-sm">Searching…</div>
@@ -71,7 +71,7 @@ function SearchDropdown({
           <Link
             key={product.id}
             to={`${paths.products}/${product.route_key}`}
-            onClick={onSelect}
+            onClick={() => onSelect(product)}
             className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
@@ -104,7 +104,7 @@ function SearchDropdown({
 
       <Link
         to={`${paths.products}?q=${encodeURIComponent(query)}`}
-        onClick={onSelect}
+        onClick={() => onSelect(null)}
         className="block border-gray-100 border-t px-4 py-2.5 text-center font-medium text-blue-600 text-sm hover:bg-gray-50 dark:border-gray-800 dark:text-blue-400 dark:hover:bg-gray-800"
       >
         See all results for “{query}”
@@ -240,9 +240,9 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
     setMenuOpen(false)
   }, [])
 
-  // Debounce the search query by 1 second.
+  // Debounce the search query by 250ms — instant suggestions without spamming the API.
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 1000)
+    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 250)
     return () => clearTimeout(timer)
   }, [query])
 
@@ -260,18 +260,20 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
   }, [])
 
   const { data: searchResult, isFetching } = useQuery({
-    queryKey: ['storefront-search', debouncedQuery, categoryId],
-    queryFn: () =>
-      catalogApi.products({
-        search: debouncedQuery,
-        category_ids: categoryId ? [Number(categoryId)] : undefined,
-        per_page: 8,
-      }),
-    enabled: debouncedQuery.length >= 3,
+    queryKey: ['storefront-suggest', debouncedQuery, categoryId],
+    queryFn: () => catalogApi.suggest(debouncedQuery, categoryId ? Number(categoryId) : undefined),
+    enabled: debouncedQuery.length >= 2,
   })
 
-  const searchResults = searchResult?.data ?? []
-  const showDropdown = searchOpen && debouncedQuery.length >= 3
+  const { data: trending = [] } = useQuery({
+    queryKey: ['search-trending-topbar'],
+    queryFn: () => catalogApi.trending(8),
+    enabled: searchOpen && query.trim() === '',
+    staleTime: 15 * 60 * 1000,
+  })
+
+  const searchResults = searchResult ?? []
+  const showDropdown = searchOpen && debouncedQuery.length >= 2
 
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault()
@@ -296,7 +298,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
 
   return (
     <div className="w-full bg-[#131921] px-4 py-2.5">
-      <div className="mx-auto flex max-w-[1920px] items-center gap-3">
+      <div className="shell mx-auto flex items-center gap-3">
         {/* Mobile menu trigger */}
         <button
           type="button"
@@ -315,7 +317,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
         >
           <Logo width={34} />
           <span className="hidden font-extrabold text-3xl text-white tracking-tight md:block">
-            hta<span className="text-sky-500">shop</span>
+            HTA<span className="text-sky-500">shop</span>
           </span>
         </Link>
 
@@ -356,13 +358,42 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
             </button>
           </form>
 
+          {searchOpen && query.trim() === '' && trending.length > 0 && (
+            <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+              <p className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
+                Trending searches
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {trending.map(({ query: term, count }) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => {
+                      setSearchOpen(false)
+                      navigate(`${paths.products}?q=${encodeURIComponent(term)}`)
+                    }}
+                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-gray-700 text-xs transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+                  >
+                    {term}
+                    <span className="text-gray-400">{count}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {showDropdown && (
             <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
               <SearchDropdown
                 isFetching={isFetching}
                 results={searchResults}
                 query={debouncedQuery}
-                onSelect={() => setSearchOpen(false)}
+                onSelect={(selected) => {
+                  setSearchOpen(false)
+                  if (selected) {
+                    catalogApi.recordSearchClick(debouncedQuery, selected.id).catch(() => {})
+                  }
+                }}
               />
             </div>
           )}

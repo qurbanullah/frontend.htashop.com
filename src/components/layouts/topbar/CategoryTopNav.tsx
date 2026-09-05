@@ -16,7 +16,7 @@ export function CategoryNav() {
 
   return (
     <nav className="hidden border-gray-200 border-b bg-white px-4 lg:block dark:border-gray-800 dark:bg-gray-900">
-      <div className="mx-auto flex max-w-[1920px] items-center gap-1 overflow-x-auto">
+      <div className="shell mx-auto flex items-center gap-1 overflow-x-auto">
         <div className="flex w-full">
           <button
             type="button"

@@ -21,9 +21,11 @@ export interface CatalogSelection {
   maxPrice: string
 }
 
+export type FilterOption = { id: number; name: string; count?: number }
+
 interface FilterSidebarProps {
-  brands: Array<{ id: number; name: string }>
-  features: Array<{ id: number; name: string }>
+  brands: FilterOption[]
+  features: FilterOption[]
   selection: CatalogSelection
   onChange: (patch: Partial<CatalogSelection>) => void
   onClear: () => void
@@ -45,13 +47,20 @@ export function FilterSidebar({
   const [showAllBrands, setShowAllBrands] = useState(false)
   const [showAllFeatures, setShowAllFeatures] = useState(false)
 
-  const filteredBrands = brandSearch.trim()
-    ? brands.filter((b) => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
-    : brands
+  const isPresent = (option: FilterOption, selectedIds: number[]) =>
+    option.count === undefined || option.count > 0 || selectedIds.includes(option.id)
 
-  const filteredFeatures = featureSearch.trim()
-    ? features.filter((f) => f.name.toLowerCase().includes(featureSearch.toLowerCase()))
-    : features
+  const filteredBrands = (
+    brandSearch.trim()
+      ? brands.filter((b) => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
+      : brands
+  ).filter((b) => isPresent(b, selection.brandIds))
+
+  const filteredFeatures = (
+    featureSearch.trim()
+      ? features.filter((f) => f.name.toLowerCase().includes(featureSearch.toLowerCase()))
+      : features
+  ).filter((f) => isPresent(f, selection.featureIds))
 
   const visibleBrands = showAllBrands
     ? filteredBrands
@@ -107,9 +116,12 @@ export function FilterSidebar({
               />
               <label
                 htmlFor={`brand-${brand.id}`}
-                className="cursor-pointer text-gray-700 text-sm dark:text-gray-300"
+                className="flex flex-1 cursor-pointer items-center justify-between gap-2 text-gray-700 text-sm dark:text-gray-300"
               >
-                {brand.name}
+                <span className="truncate">{brand.name}</span>
+                {brand.count !== undefined && (
+                  <span className="shrink-0 text-gray-400 text-xs">{brand.count}</span>
+                )}
               </label>
             </div>
           ))}
@@ -148,7 +160,7 @@ export function FilterSidebar({
                       : { minPrice: range.min, maxPrice: range.max }
                   )
                 }
-                className={`w-full rounded-lg px-3 py-1.5 text-left text-sm transition-colors ${
+                className={`w-full py-1.5 text-left text-sm transition-colors ${
                   active
                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                     : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
@@ -189,9 +201,12 @@ export function FilterSidebar({
               />
               <label
                 htmlFor={`feature-${feature.id}`}
-                className="cursor-pointer text-gray-700 text-sm dark:text-gray-300"
+                className="flex flex-1 cursor-pointer items-center justify-between gap-2 text-gray-700 text-sm dark:text-gray-300"
               >
-                {feature.name}
+                <span className="truncate">{feature.name}</span>
+                {feature.count !== undefined && (
+                  <span className="shrink-0 text-gray-400 text-xs">{feature.count}</span>
+                )}
               </label>
             </div>
           ))}

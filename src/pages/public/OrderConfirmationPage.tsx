@@ -64,7 +64,7 @@ export default function OrderConfirmationPage() {
   const payment = order.payment?.[0] ?? null
 
   return (
-    <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="shell-narrow mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <nav
         className="mb-6 flex flex-wrap items-center gap-1 text-gray-500 text-sm dark:text-gray-400"
         aria-label="Breadcrumb"

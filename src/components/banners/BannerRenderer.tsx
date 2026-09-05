@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Banner } from '@/api/banners'
 import { useBanners } from '@/hooks/useBanners'
@@ -111,9 +111,96 @@ function BannerImage({ banner }: { banner: Banner }) {
 function ImageBanner({ banner, fullWidth }: { banner: Banner; fullWidth: boolean }) {
   return (
     <div
-      className={`${fullWidth ? 'w-full' : 'mx-auto max-w-7xl'} h-72 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm dark:border-gray-800 dark:bg-gray-900`}
+      className={`${fullWidth ? 'w-full' : 'mx-auto max-w-7xl'} h-[clamp(180px,26vw,360px)] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm dark:border-gray-800 dark:bg-gray-900`}
     >
       <BannerImage banner={banner} />
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Split-banner grid carousel                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Renders `split`-type banners as a responsive grid carousel: one tile per
+ * view on phones, two side-by-side from sm, and four from lg up. When the
+ * tiles overflow the container (more banners than visible tiles), left/right
+ * arrows scroll the track by one tile. Used just below the hero on the home
+ * page.
+ */
+export function SplitBannerCarousel({ banners }: { banners: Banner[] }) {
+  const trackRef = useRef<HTMLDivElement | null>(null)
+  const [canScroll, setCanScroll] = useState(false)
+
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el) return
+
+    const update = () => setCanScroll(el.scrollWidth > el.clientWidth + 8)
+    update()
+
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    window.addEventListener('resize', update)
+    // Re-check after first paint (tiles mount with the component).
+    const frame = requestAnimationFrame(update)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
+  const scrollByTile = (direction: 1 | -1) => {
+    const el = trackRef.current
+    if (!el) return
+
+    const tile = el.querySelector<HTMLElement>('[data-split-tile]')
+    const step = tile ? tile.offsetWidth + 16 : el.clientWidth
+    el.scrollBy({ left: direction * step, behavior: 'smooth' })
+  }
+
+  return (
+    <div className="relative">
+      <div
+        ref={trackRef}
+        className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth"
+      >
+        {banners.map((banner) => (
+          <div
+            key={banner.uuid}
+            data-split-tile
+            className="w-[85%] shrink-0 snap-start sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)]"
+          >
+            <div className="h-96 w-full overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <BannerImage banner={banner} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {canScroll && (
+        <>
+          <button
+            type="button"
+            onClick={() => scrollByTile(-1)}
+            className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
+            aria-label="Previous split banners"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByTile(1)}
+            className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
+            aria-label="Next split banners"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -138,7 +225,7 @@ function HeroCarousel({ banners, fullWidth }: { banners: Banner[]; fullWidth: bo
 
   return (
     <div
-      className={`relative ${fullWidth ? 'w-full' : 'mx-auto max-w-7xl'} h-72 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm dark:border-gray-800 dark:bg-gray-900`}
+      className={`relative ${fullWidth ? 'w-full' : 'mx-auto max-w-7xl'} h-96 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 shadow-sm dark:border-gray-800 dark:bg-gray-900`}
     >
       {banners.map((b, i) => (
         <div

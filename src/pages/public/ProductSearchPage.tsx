@@ -1,18 +1,24 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Loader2, Package, SlidersHorizontal, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  type CatalogFilterOptions,
   type CatalogFiltersPayload,
   type CatalogProduct,
   catalogApi,
+  type SearchResultsResponse,
+  type TrendingSearch,
 } from '@/api/catalog'
 import { type Category, categoriesApi } from '@/api/categories'
 import { BannerZone } from '@/components/banners/BannerRenderer'
-import { type CatalogSelection, FilterSidebar } from '@/components/catalog/FilterSidebar'
+import {
+  type CatalogSelection,
+  type FilterOption,
+  FilterSidebar,
+} from '@/components/catalog/FilterSidebar'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Seo, siteUrl } from '@/components/seo/Seo'
+import { paths } from '@/routes/paths'
 
 function useDebouncedValue<T>(value: T, delay = 350): T {
   const [debounced, setDebounced] = useState(value)
@@ -99,7 +105,7 @@ function ProductResults({
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="product-grid">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
@@ -145,6 +151,146 @@ function PaginationControls({
   )
 }
 
+// ── Facet chips (category / brand / feature counts from Typesense) ──
+
+interface FacetChip {
+  key: string
+  label: string
+  count: number
+  active: boolean
+  onClick: () => void
+}
+
+function buildFacetChips(
+  counts: Array<{ value: string | number | null; count: number }>,
+  idByName: Map<string, number>,
+  prefix: string,
+  isActive: (id: number) => boolean,
+  onToggle: (id: number) => void
+): FacetChip[] {
+  const chips: FacetChip[] = []
+
+  for (const count of counts) {
+    const id = idByName.get(String(count.value ?? '').toLowerCase())
+    if (!id) continue
+    chips.push({
+      key: `${prefix}-${id}`,
+      label: String(count.value),
+      count: count.count,
+      active: isActive(id),
+      onClick: () => onToggle(id),
+    })
+  }
+
+  return chips
+}
+
+function FacetChips({
+  facets,
+  categoryIdByName,
+  brandIdByName,
+  featureIdByName,
+  activeCategoryId,
+  activeBrandIds,
+  activeFeatureIds,
+  onToggleCategory,
+  onToggleBrand,
+  onToggleFeature,
+}: {
+  facets?: SearchResultsResponse['facets']
+  categoryIdByName: Map<string, number>
+  brandIdByName: Map<string, number>
+  featureIdByName: Map<string, number>
+  activeCategoryId?: number
+  activeBrandIds: number[]
+  activeFeatureIds: number[]
+  onToggleCategory: (id: number) => void
+  onToggleBrand: (id: number) => void
+  onToggleFeature: (id: number) => void
+}) {
+  const chips = [
+    ...buildFacetChips(
+      facets?.category_names?.counts ?? [],
+      categoryIdByName,
+      'c',
+      (id) => id === activeCategoryId,
+      onToggleCategory
+    ),
+    ...buildFacetChips(
+      facets?.brand_names?.counts ?? [],
+      brandIdByName,
+      'b',
+      (id) => activeBrandIds.includes(id),
+      onToggleBrand
+    ),
+    ...buildFacetChips(
+      facets?.feature_names?.counts ?? [],
+      featureIdByName,
+      'f',
+      (id) => activeFeatureIds.includes(id),
+      onToggleFeature
+    ),
+  ]
+
+  if (chips.length === 0) return null
+
+  return (
+    <div className="mb-5 flex flex-wrap items-center gap-2">
+      <span className="font-medium text-gray-400 text-xs uppercase tracking-wide dark:text-gray-500">
+        Refine by:
+      </span>
+      {chips.slice(0, 15).map((chip) => (
+        <button
+          key={chip.key}
+          type="button"
+          onClick={chip.onClick}
+          className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 font-medium text-xs transition-colors ${
+            chip.active
+              ? 'border-blue-600 bg-blue-600 text-white'
+              : 'border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-400 dark:hover:text-blue-400'
+          }`}
+        >
+          {chip.label}
+          <span className={chip.active ? 'text-blue-100' : 'text-gray-400'}>{chip.count}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── Trending searches (from search_queries analytics) ──
+
+function TrendingSearches({
+  queries,
+  onSelect,
+}: {
+  queries: TrendingSearch[]
+  onSelect: (query: string) => void
+}) {
+  if (queries.length === 0) return null
+
+  return (
+    <div>
+      <h3 className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
+        Trending searches
+      </h3>
+      <div className="flex flex-wrap gap-2">
+        {queries.map(({ query, count }) => (
+          <button
+            key={query}
+            type="button"
+            onClick={() => onSelect(query)}
+            className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1 text-gray-700 text-xs transition-colors hover:border-blue-400 hover:text-blue-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-400 dark:hover:text-blue-400"
+          >
+            {query}
+            <span className="text-gray-400">{count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function buildSeoTitle(isSearch: boolean, query: string, categoryName?: string): string {
   if (isSearch) return `Search results for "${query.trim()}"`
   return categoryName ?? 'Shop Products'
@@ -165,16 +311,20 @@ function MobileFilterDrawer({
   brands,
   features,
   selection,
+  trending,
   onChange,
   onClear,
+  onSelectTrending,
 }: {
   open: boolean
   onClose: () => void
-  brands: CatalogFilterOptions['brands']
-  features: CatalogFilterOptions['features']
+  brands: FilterOption[]
+  features: FilterOption[]
   selection: CatalogSelection
+  trending: TrendingSearch[]
   onChange: (patch: Partial<CatalogSelection>) => void
   onClear: () => void
+  onSelectTrending: (query: string) => void
 }) {
   if (!open) return null
 
@@ -201,6 +351,9 @@ function MobileFilterDrawer({
           onChange={onChange}
           onClear={onClear}
         />
+        <div className="mt-6 border-gray-100 border-t pt-5 dark:border-gray-800">
+          <TrendingSearches queries={trending} onSelect={onSelectTrending} />
+        </div>
       </div>
     </div>
   )
@@ -224,10 +377,10 @@ function applySearchParamsToFilters(
   }
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: storefront search page — state, SEO metadata and filter wiring are inherently branch-heavy; heavy sections are already extracted into ProductResults/PaginationControls/MobileFilterDrawer
 export default function ProductSearchPage() {
+  const navigate = useNavigate()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<CatalogFiltersPayload>({
     search: '',
     category_ids: [],
@@ -253,8 +406,14 @@ export default function ProductSearchPage() {
   })
 
   const { data: result, isLoading } = useQuery({
-    queryKey: ['catalog-products', debouncedFilters],
-    queryFn: () => catalogApi.products(debouncedFilters),
+    queryKey: ['search-products', debouncedFilters],
+    queryFn: () => catalogApi.search(debouncedFilters),
+  })
+
+  const { data: trending = [] } = useQuery({
+    queryKey: ['search-trending'],
+    queryFn: () => catalogApi.trending(8),
+    staleTime: 15 * 60 * 1000,
   })
 
   const { data: categoryTree = [] } = useQuery({
@@ -347,8 +506,89 @@ export default function ProductSearchPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // ── Facet helpers (map facet names back to ids so chips can filter) ──
+
+  const categoryIdByName = useMemo(() => {
+    const map = new Map<string, number>()
+    const walk = (nodes: Category[]) => {
+      for (const node of nodes) {
+        map.set(node.name.toLowerCase(), node.id)
+        if (node.children) walk(node.children)
+      }
+    }
+    walk(categoryTree)
+    return map
+  }, [categoryTree])
+
+  const brandIdByName = useMemo(
+    () => new Map((filterOptions?.brands ?? []).map((b) => [b.name.toLowerCase(), b.id])),
+    [filterOptions]
+  )
+
+  const featureIdByName = useMemo(
+    () => new Map((filterOptions?.features ?? []).map((f) => [f.name.toLowerCase(), f.id])),
+    [filterOptions]
+  )
+
+  const brandCountByName = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const count of result?.facets?.brand_names?.counts ?? []) {
+      map.set(String(count.value ?? '').toLowerCase(), count.count)
+    }
+    return map
+  }, [result?.facets])
+
+  const featureCountByName = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const count of result?.facets?.feature_names?.counts ?? []) {
+      map.set(String(count.value ?? '').toLowerCase(), count.count)
+    }
+    return map
+  }, [result?.facets])
+
+  const sidebarBrands: FilterOption[] = useMemo(
+    () =>
+      (filterOptions?.brands ?? []).map((b) => ({
+        ...b,
+        count: brandCountByName.get(b.name.toLowerCase()) ?? 0,
+      })),
+    [filterOptions, brandCountByName]
+  )
+
+  const sidebarFeatures: FilterOption[] = useMemo(
+    () =>
+      (filterOptions?.features ?? []).map((f) => ({
+        ...f,
+        count: featureCountByName.get(f.name.toLowerCase()) ?? 0,
+      })),
+    [filterOptions, featureCountByName]
+  )
+
+  const toggleCategory = (id: number) => {
+    const next = new URLSearchParams(searchParams)
+    const current = next.get('category')
+    if (current === String(id)) {
+      next.delete('category')
+    } else {
+      next.set('category', String(id))
+    }
+    next.delete('page')
+    setSearchParams(next)
+  }
+
+  const toggleIdFilter = (key: 'brand_ids' | 'feature_ids', id: number) => {
+    setFilters((prev) => {
+      const current = prev[key] ?? []
+      return {
+        ...prev,
+        [key]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
+        page: 1,
+      }
+    })
+  }
+
   return (
-    <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="shell mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <Seo
         title={seoTitle}
         description={seoDescription}
@@ -365,12 +605,18 @@ export default function ProductSearchPage() {
         {/* Sidebar (desktop) — starts from the top, below the top bar */}
         <div className="hidden lg:block">
           <FilterSidebar
-            brands={filterOptions?.brands ?? []}
-            features={filterOptions?.features ?? []}
+            brands={sidebarBrands}
+            features={sidebarFeatures}
             selection={selection}
             onChange={updateSelection}
             onClear={clearSelection}
           />
+          <div className="mt-6 border-gray-100 border-t pt-5 dark:border-gray-800">
+            <TrendingSearches
+              queries={trending}
+              onSelect={(q) => navigate(`${paths.products}?q=${encodeURIComponent(q)}`)}
+            />
+          </div>
         </div>
 
         {/* Main — banner + results in the same column as the sidebar */}
@@ -409,6 +655,19 @@ export default function ProductSearchPage() {
             </select>
           </div>
 
+          <FacetChips
+            facets={result?.facets}
+            categoryIdByName={categoryIdByName}
+            brandIdByName={brandIdByName}
+            featureIdByName={featureIdByName}
+            activeCategoryId={categoryId}
+            activeBrandIds={filters.brand_ids ?? []}
+            activeFeatureIds={filters.feature_ids ?? []}
+            onToggleCategory={toggleCategory}
+            onToggleBrand={(id) => toggleIdFilter('brand_ids', id)}
+            onToggleFeature={(id) => toggleIdFilter('feature_ids', id)}
+          />
+
           <ProductResults isLoading={isLoading} products={products} meta={meta} />
           <PaginationControls meta={meta} onPageChange={goToPage} />
         </div>
@@ -418,11 +677,13 @@ export default function ProductSearchPage() {
       <MobileFilterDrawer
         open={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
-        brands={filterOptions?.brands ?? []}
-        features={filterOptions?.features ?? []}
+        brands={sidebarBrands}
+        features={sidebarFeatures}
         selection={selection}
+        trending={trending}
         onChange={updateSelection}
         onClear={clearSelection}
+        onSelectTrending={(q) => navigate(`${paths.products}?q=${encodeURIComponent(q)}`)}
       />
     </div>
   )

@@ -2,6 +2,50 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* ────────────────────────────────────────────────────────────────────────
+   Layout tokens & page shells
+
+   Chrome (header/footer/nav) and browse surfaces use the wide `shell`;
+   consume/task pages (PDP, checkout, account, legal) use `shell-narrow`.
+   The widths are capped so rows stay scannable on ultra-wide displays and
+   zoomed windows (125%/150%) reflow fluidly instead of overflowing.
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+    --shell-max: 1600px;
+    --shell-narrow-max: 1200px;
+}
+
+@layer components {
+    /* Wide page shell — browse surfaces (home, listings, search). */
+    .shell {
+        width: 100%;
+        max-width: var(--shell-max);
+        margin-inline: auto;
+    }
+
+    /* Narrow page shell — detail/consume surfaces (PDP, checkout, account). */
+    .shell-narrow {
+        width: 100%;
+        max-width: var(--shell-narrow-max);
+        margin-inline: auto;
+    }
+
+    /* Product card grid: 2-up on phones, then as many ≥230px columns as
+       fit — columns reflow continuously at every zoom level/breakpoint. */
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    @media (width >= 40rem) {
+        .product-grid {
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 1.25rem;
+        }
+    }
+}
+
 html {
     color-scheme: light;
     scroll-behavior: smooth;
@@ -9,6 +53,13 @@ html {
 }
 html.dark {
     color-scheme: dark;
+}
+
+/* Zoom/scale safety net: never allow accidental horizontal scrolling.
+   `clip` (not `hidden`) so sticky/positioned elements keep working. */
+html,
+body {
+    overflow-x: clip;
 }
 
 html,

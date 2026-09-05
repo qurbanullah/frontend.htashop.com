@@ -24,12 +24,12 @@ function slugify(text: string): string {
 }
 
 /**
- * Shared shell for compliance / legal pages — header, sticky table of
+ * Shared shell-narrow for compliance / legal pages — header, sticky table of
  * contents, article content, and a contact card.
  */
 export function LegalLayout({ title, description, updated, sections }: LegalLayoutProps) {
   return (
-    <div className="mx-auto max-w-[1920px] px-4 py-10 sm:px-6 lg:px-8">
+    <div className="shell-narrow mx-auto px-4 py-10 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
       <nav
         className="mb-6 flex items-center gap-1 text-gray-500 text-sm dark:text-gray-400"

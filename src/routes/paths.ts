@@ -19,6 +19,11 @@ export const paths = {
   // Public storefront
   products: '/products',
 
+  // Content (blogs / news / events)
+  blogs: '/blogs',
+  news: '/news',
+  events: '/events',
+
   // Legal / compliance
   policiesPrivacy: '/policies/privacy-policy',
   policiesTerms: '/policies/terms-of-use',

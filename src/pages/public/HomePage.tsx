@@ -2,15 +2,15 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Sparkles, Store } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { catalogApi } from '@/api/catalog'
-import { BannerZone } from '@/components/banners/BannerRenderer'
+import { BannerZone, SplitBannerCarousel } from '@/components/banners/BannerRenderer'
 import { ProductGrid } from '@/components/catalog/ProductGrid'
 import { ProductRail } from '@/components/catalog/ProductRail'
 import { Seo, SITE_URL, siteUrl } from '@/components/seo/Seo'
 import { useBanners } from '@/hooks/useBanners'
 import { paths } from '@/routes/paths'
 
-/** Non-hero banner types rendered as a promo strip between product sections. */
-const PROMO_BANNER_TYPES = ['promo', 'sponsored', 'split', 'single']
+/** Banner types rendered as image strips between product sections (hero and split have dedicated zones). */
+const NON_HERO_BANNER_TYPES = ['promo', 'sponsored', 'top_brands', 'just_launched', 'single']
 
 function SectionHeader({ title, subtitle, to }: { title: string; subtitle?: string; to?: string }) {
   return (
@@ -39,7 +39,7 @@ function FallbackHero() {
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
       <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_top_right,rgba(255,255,255,0.35)_0,transparent_45%)]" />
-      <div className="relative mx-auto flex max-w-[1920px] flex-col items-start gap-6 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <div className="shell relative mx-auto flex flex-col items-start gap-6 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 font-semibold text-white text-xs">
           <Sparkles className="h-3.5 w-3.5" />
           E-commerce platform · Verified suppliers
@@ -102,7 +102,10 @@ export default function HomePage() {
 
   const { data: homeBanners = [] } = useBanners('home')
   const heroCount = homeBanners.filter((banner) => banner.type === 'hero').length
-  const promoCount = homeBanners.filter((banner) => PROMO_BANNER_TYPES.includes(banner.type)).length
+  const splitBanners = homeBanners.filter((banner) => banner.type === 'split')
+  const promoCount = homeBanners.filter((banner) =>
+    NON_HERO_BANNER_TYPES.includes(banner.type)
+  ).length
 
   const newArrivals = useQuery({
     queryKey: ['home', 'products', 'new-arrivals'],
@@ -151,15 +154,22 @@ export default function HomePage() {
         )}
       </section>
 
+      {/* 1b — Split banner grid carousel (under the hero) */}
+      {splitBanners.length > 0 && (
+        <section className="shell mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          <SplitBannerCarousel banners={splitBanners} />
+        </section>
+      )}
+
       {/* 2 — New arrivals */}
-      <section className="mx-auto max-w-[1920px] px-4 py-10 sm:px-6 lg:px-8">
+      <section className="shell mx-auto px-4 py-10 sm:px-6 lg:px-8">
         <SectionHeader title="New Arrivals" subtitle="Fresh from our catalog" to={paths.products} />
         <ProductGrid products={newArrivals.data?.data ?? []} isLoading={newArrivals.isLoading} />
       </section>
 
       {/* 3 — Trending carousel (the in-page slider) */}
       <section className="border-gray-200 border-y bg-white py-10 dark:border-gray-800 dark:bg-gray-950">
-        <div className="mx-auto max-w-[1920px] px-4 sm:px-6 lg:px-8">
+        <div className="shell mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Trending Now"
             subtitle="What shoppers are loving right now"
@@ -169,15 +179,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4 — Promo banner strip (banner system, non-hero) */}
+      {/* 4 — Promo banner strip (banner system, remaining non-hero types) */}
       {promoCount > 0 && (
-        <div className="mx-auto max-w-[1920px] px-4 py-10 sm:px-6 lg:px-8">
-          <BannerZone placement="home" types={PROMO_BANNER_TYPES} />
+        <div className="shell mx-auto px-4 py-10 sm:px-6 lg:px-8">
+          <BannerZone placement="home" types={NON_HERO_BANNER_TYPES} />
         </div>
       )}
 
       {/* 5 — Best sellers */}
-      <section className="mx-auto max-w-[1920px] px-4 pb-14 sm:px-6 lg:px-8">
+      <section className="shell mx-auto px-4 pb-14 sm:px-6 lg:px-8">
         <SectionHeader
           title="Best Sellers"
           subtitle="Top picks from verified suppliers"

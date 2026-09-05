@@ -147,9 +147,9 @@ export function Footer() {
 
   return (
     <footer className="border-gray-200 border-t bg-white text-gray-600 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
-      {/* Newsletter band */}
+      {/* Email signup band */}
       <div className="border-gray-200 border-b bg-gradient-to-r from-blue-50 via-white to-cyan-50 dark:border-gray-800/80 dark:from-blue-950/50 dark:via-gray-950 dark:to-cyan-950/40">
-        <div className="mx-auto flex max-w-[1920px] flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        <div className="shell mx-auto flex flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <h2 className="font-bold text-gray-900 text-xl sm:text-2xl dark:text-white">
               Stay ahead of the market
@@ -166,11 +166,11 @@ export function Footer() {
             </div>
           ) : (
             <form onSubmit={handleSubscribe} className="flex w-full max-w-md gap-2">
-              <label htmlFor="newsletter-email" className="sr-only">
+              <label htmlFor="subscribe-email" className="sr-only">
                 Email address
               </label>
               <input
-                id="newsletter-email"
+                id="subscribe-email"
                 type="email"
                 required
                 value={email}
@@ -191,7 +191,7 @@ export function Footer() {
       </div>
 
       {/* Main columns */}
-      <div className="mx-auto max-w-[1920px] px-4 py-12 sm:px-6 lg:px-8">
+      <div className="shell mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-12">
           {/* Brand */}
           <div className="lg:col-span-4">
@@ -290,7 +290,7 @@ export function Footer() {
 
       {/* Bottom bar */}
       <div className="border-gray-200 border-t dark:border-gray-800/80">
-        <div className="mx-auto flex max-w-[1920px] flex-col gap-2 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+        <div className="shell mx-auto flex flex-col gap-2 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <p className="text-gray-500 text-xs">
             &copy; {year} HTAShop — A product of{' '}
             <a

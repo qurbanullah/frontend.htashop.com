@@ -155,7 +155,7 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1920px] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="shell mx-auto px-4 py-8 sm:px-6 lg:px-8">
       <Seo
         title={product.name}
         description={metaDescription || `Buy ${product.name} online at HTAShop.`}

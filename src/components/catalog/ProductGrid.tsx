@@ -34,7 +34,7 @@ export function ProductGrid({
 }: ProductGridProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+      <div className="product-grid">
         {Array.from({ length: 10 }, (_, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholder
           <ProductCardSkeleton key={index} />
@@ -52,7 +52,7 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+    <div className="product-grid">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
