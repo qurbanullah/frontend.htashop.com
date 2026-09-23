@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Camera, Loader2, User as UserIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { accountApi } from '@/api/account'
 import api from '@/api/client'
 import { Button } from '@/components/ui/button'
@@ -10,15 +11,10 @@ import { useToast } from '@/components/ui/Toaster'
 import { isApiError } from '@/lib/api-response'
 import { authHeaders } from '@/lib/auth-header'
 import { createAvatarVariants, uploadAvatarVariants } from '@/lib/avatar-upload'
+import { cdnUrl } from '@/lib/cdn'
 import { useAuthStore } from '@/stores/auth'
 
-const CDN_BASE = 'https://cdn.htashop.com'
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-function cdnUrl(key?: string | null): string {
-  if (!key) return ''
-  return key.startsWith('http') ? key : `${CDN_BASE}/${key}`
-}
 
 function showProfileError(
   showError: (message: string) => void,
@@ -33,6 +29,7 @@ function showProfileError(
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation()
   const { user, updateUser } = useAuthStore()
   const { success: showSuccess, error: showError } = useToast()
 
@@ -57,7 +54,7 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
-      showError('Name is required')
+      showError(t('account.profile_name_required'))
       return
     }
     setSavingProfile(true)
@@ -72,9 +69,9 @@ export default function ProfilePage() {
         first_name: updated.first_name ?? undefined,
         last_name: updated.last_name ?? undefined,
       })
-      showSuccess('Profile updated')
+      showSuccess(t('account.profile_updated'))
     } catch (e) {
-      showProfileError(showError, e, 'Failed to update profile')
+      showProfileError(showError, e, t('account.profile_update_failed'))
     } finally {
       setSavingProfile(false)
     }
@@ -82,11 +79,11 @@ export default function ProfilePage() {
 
   const handleAvatarFile = async (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      showError('JPEG, PNG, or WebP images only')
+      showError(t('account.profile_photo_types'))
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      showError('Image must be 10MB or smaller')
+      showError(t('account.profile_photo_size'))
       return
     }
 
@@ -110,12 +107,12 @@ export default function ProfilePage() {
         data?: { avatar_urls?: Record<string, string> }
         message?: string
       }
-      if (!body.success) throw new Error(body.message || 'Failed to save avatar')
+      if (!body.success) throw new Error(body.message || t('account.profile_avatar_failed'))
 
       updateUser({ avatar_urls: body.data?.avatar_urls as never })
-      showSuccess('Profile photo updated')
+      showSuccess(t('account.profile_photo_updated'))
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Failed to upload photo')
+      showError(e instanceof Error ? e.message : t('account.profile_photo_failed'))
     } finally {
       setIsUploadingAvatar(false)
     }
@@ -124,9 +121,11 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Profile & Security</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          {t('account.profile_title')}
+        </h1>
         <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-          Manage your personal information, photo, and password.
+          {t('account.profile_subtitle')}
         </p>
       </div>
 
@@ -134,7 +133,9 @@ export default function ProfilePage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center gap-2">
           <UserIcon className="h-4 w-4 text-gray-400" />
-          <h2 className="font-semibold text-gray-900 dark:text-white">Personal information</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            {t('account.profile_personal_info')}
+          </h2>
         </div>
 
         <div className="mt-5 flex flex-col gap-6 sm:flex-row">
@@ -145,7 +146,7 @@ export default function ProfilePage() {
                 {avatarUrl ? (
                   <img
                     src={cdnUrl(avatarUrl)}
-                    alt={profile?.name ?? 'Profile'}
+                    alt={profile?.name ?? t('account.profile_avatar_alt')}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -159,8 +160,8 @@ export default function ProfilePage() {
               )}
               <label
                 htmlFor="avatar-upload"
-                className="absolute -right-1 -bottom-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-white shadow transition-colors hover:bg-blue-700"
-                aria-label="Upload profile photo"
+                className="absolute -end-1 -bottom-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-blue-600 text-white shadow transition-colors hover:bg-blue-700"
+                aria-label={t('account.profile_upload_photo')}
               >
                 <Camera className="h-4 w-4" />
               </label>
@@ -176,20 +177,20 @@ export default function ProfilePage() {
                 }}
               />
             </div>
-            <p className="text-gray-400 text-xs">JPG, PNG or WebP · Max 10MB</p>
+            <p className="text-gray-400 text-xs">{t('account.profile_photo_hint')}</p>
           </div>
 
           {/* Form */}
           <div className="grid flex-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-                Full name <span className="text-red-500">*</span>
+                {t('account.profile_full_name')} <span className="text-red-500">*</span>
               </Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
             </div>
             <div className="space-y-1.5">
               <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-                Email <span className="text-red-500">*</span>
+                {t('account.profile_email')} <span className="text-red-500">*</span>
               </Label>
               <Input
                 value={profile?.email ?? user?.email ?? ''}
@@ -199,7 +200,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-1.5">
               <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-                First name (optional)
+                {t('account.profile_first_optional')}
               </Label>
               <Input
                 value={firstName}
@@ -209,7 +210,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-1.5">
               <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-                Last name (optional)
+                {t('account.profile_last_optional')}
               </Label>
               <Input
                 value={lastName}
@@ -227,7 +228,7 @@ export default function ProfilePage() {
             className="inline-flex items-center gap-2"
           >
             {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Save changes
+            {t('account.profile_save')}
           </Button>
         </div>
       </div>

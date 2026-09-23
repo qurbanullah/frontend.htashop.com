@@ -1,5 +1,8 @@
-import { CalendarDays, ChevronRight, Clock, FileText, Mail } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock, FileText, Mail, MapPin, Phone } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { Seo } from '@/components/seo/Seo'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
 import { paths } from '@/routes/paths'
 
 export interface LegalSection {
@@ -11,6 +14,8 @@ export interface LegalSection {
 interface LegalLayoutProps {
   title: string
   description?: string
+  /** Canonical path (e.g. paths.policiesPrivacy) — also drives the page's SEO tags. */
+  canonical: string
   updated: string
   sections: LegalSection[]
 }
@@ -27,18 +32,27 @@ function slugify(text: string): string {
  * Shared shell-narrow for compliance / legal pages — header, sticky table of
  * contents, article content, and a contact card.
  */
-export function LegalLayout({ title, description, updated, sections }: LegalLayoutProps) {
+export function LegalLayout({
+  title,
+  description,
+  canonical,
+  updated,
+  sections,
+}: LegalLayoutProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="shell-narrow mx-auto px-4 py-10 sm:px-6 lg:px-8">
+      <Seo title={title} description={description} canonical={canonical} type="article" />
       {/* Breadcrumb */}
       <nav
         className="mb-6 flex items-center gap-1 text-gray-500 text-sm dark:text-gray-400"
-        aria-label="Breadcrumb"
+        aria-label={t('breadcrumb.label')}
       >
         <Link to={paths.home} className="hover:text-gray-900 dark:hover:text-white">
-          Home
+          {t('breadcrumb.home')}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
         <span className="text-gray-700 dark:text-gray-300">{title}</span>
       </nav>
 
@@ -47,7 +61,7 @@ export function LegalLayout({ title, description, updated, sections }: LegalLayo
         <aside className="hidden lg:col-span-3 lg:block">
           <nav className="sticky top-40 rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <p className="flex items-center gap-2 font-semibold text-gray-400 text-xs uppercase tracking-wider">
-              <FileText className="h-3.5 w-3.5" /> On this page
+              <FileText className="h-3.5 w-3.5" /> {t('legal.on_this_page')}
             </p>
             <ul className="mt-3 space-y-2">
               {sections.map((section) => (
@@ -64,7 +78,7 @@ export function LegalLayout({ title, description, updated, sections }: LegalLayo
             <div className="mt-5 border-gray-100 border-t pt-4 dark:border-gray-800">
               <p className="flex items-center gap-2 text-gray-500 text-xs dark:text-gray-400">
                 <CalendarDays className="h-3.5 w-3.5" />
-                Last updated: {updated}
+                {t('legal.last_updated', { date: updated })}
               </p>
             </div>
           </nav>
@@ -81,7 +95,7 @@ export function LegalLayout({ title, description, updated, sections }: LegalLayo
             )}
             <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-600 text-xs dark:bg-gray-800 dark:text-gray-300">
               <CalendarDays className="h-3.5 w-3.5" />
-              Effective date: {updated}
+              {t('legal.effective_date', { date: updated })}
             </p>
           </header>
 
@@ -113,22 +127,32 @@ export function LegalLayout({ title, description, updated, sections }: LegalLayo
           {/* Contact card */}
           <div className="mt-12 rounded-2xl border border-blue-100 bg-blue-50 p-6 dark:border-blue-900/40 dark:bg-blue-950/20">
             <h2 className="font-semibold text-gray-900 text-lg dark:text-white">
-              Questions about this policy?
+              {t('legal.questions_title')}
             </h2>
             <p className="mt-2 text-gray-600 text-sm leading-relaxed dark:text-gray-300">
-              Our support team is happy to help. Contact us and we'll respond as soon as possible.
+              {t('legal.questions_body')}
             </p>
-            <div className="mt-4 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:gap-6">
+            <div className="mt-4 flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
               <a
-                href="mailto:support@htashop.com"
+                href={`mailto:${COMPANY.email}`}
                 className="inline-flex items-center gap-2 font-medium text-blue-700 hover:underline dark:text-blue-400"
               >
-                <Mail className="h-4 w-4" /> support@htashop.com
+                <Mail className="h-4 w-4" /> {COMPANY.email}
+              </a>
+              <a
+                href={COMPANY.phoneHref}
+                className="inline-flex items-center gap-2 font-medium text-blue-700 hover:underline dark:text-blue-400"
+              >
+                <Phone className="h-4 w-4" /> {COMPANY.phoneDisplay}
               </a>
               <span className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                <Clock className="h-4 w-4" /> 24/7 support
+                <Clock className="h-4 w-4" /> {t('legal.support_hours')}
               </span>
             </div>
+            <p className="mt-3 inline-flex items-start gap-2 text-gray-500 text-xs leading-relaxed dark:text-gray-400">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {COMPANY_ADDRESS_LINE}
+            </p>
           </div>
         </article>
       </div>

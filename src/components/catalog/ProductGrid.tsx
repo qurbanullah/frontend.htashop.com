@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { CatalogProduct } from '@/api/catalog'
 import { ProductCard } from '@/components/catalog/ProductCard'
 
@@ -10,7 +11,7 @@ interface ProductGridProps {
 function ProductCardSkeleton() {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      <div className="aspect-[4/3] animate-pulse bg-gray-200 dark:bg-gray-800" />
+      <div className="aspect-square animate-pulse bg-gray-200 dark:bg-gray-800" />
       <div className="space-y-2 p-4">
         <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
         <div className="h-4 w-4/5 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
@@ -27,11 +28,9 @@ function ProductCardSkeleton() {
 /**
  * Responsive product grid — every card shares the same width in its row.
  */
-export function ProductGrid({
-  products,
-  isLoading = false,
-  emptyLabel = 'No products to show yet.',
-}: ProductGridProps) {
+export function ProductGrid({ products, isLoading = false, emptyLabel }: ProductGridProps) {
+  const { t } = useTranslation()
+
   if (isLoading) {
     return (
       <div className="product-grid">
@@ -46,7 +45,7 @@ export function ProductGrid({
   if (products.length === 0) {
     return (
       <p className="rounded-2xl border-2 border-gray-200 border-dashed py-12 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
-        {emptyLabel}
+        {emptyLabel ?? t('catalog.empty')}
       </p>
     )
   }

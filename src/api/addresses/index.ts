@@ -55,7 +55,7 @@ export const addressesApi = {
   },
 
   async update(uuid: string, payload: AddressPayload): Promise<AddressData> {
-    const res = await api.put(`addresses/${uuid}`, {
+    const res = await api.put(`addresses/${encodeURIComponent(uuid)}`, {
       json: payload,
       headers: authHeaders(),
       throwHttpErrors: false,
@@ -66,7 +66,7 @@ export const addressesApi = {
 
   async remove(uuid: string) {
     return parseApiResponse(
-      await api.delete(`addresses/${uuid}`, {
+      await api.delete(`addresses/${encodeURIComponent(uuid)}`, {
         headers: authHeaders(),
         throwHttpErrors: false,
       })
@@ -74,7 +74,7 @@ export const addressesApi = {
   },
 
   async setPrimary(uuid: string): Promise<AddressData> {
-    const res = await api.post(`addresses/${uuid}/primary`, {
+    const res = await api.post(`addresses/${encodeURIComponent(uuid)}/primary`, {
       headers: authHeaders(),
       throwHttpErrors: false,
     })

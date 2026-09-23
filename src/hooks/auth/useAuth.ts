@@ -9,8 +9,16 @@ import { registerAction } from '@/actions/auth/register'
 import { resendVerificationAction } from '@/actions/auth/resend-verification'
 import { verifyEmailAction } from '@/actions/auth/verify-email'
 import type { LoginRequest, RegisterRequest } from '@/api/auth'
+import i18n from '@/i18n/config'
 import { isApiError } from '@/lib/api-response'
+import { paths } from '@/routes/paths'
 import { useAuthStore } from '@/stores/auth'
+
+// Every fallback below is resolved lazily through i18n, so a message set at the
+// moment of failure is rendered in whichever language is active then.
+function t(key: string): string {
+  return i18n.t(key)
+}
 
 function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message || fallback
@@ -69,12 +77,12 @@ export function useAuth() {
       const response = await loginAction(credentials)
 
       if (response.success) {
-        login(response.user, response.token)
-        navigate('/dashboard', { replace: true })
+        login(response.user)
+        navigate(paths.account, { replace: true })
         return { success: true }
       }
-      setError('Login failed. Please try again.')
-      return { success: false, message: 'Login failed' }
+      setError(t('login.error_retry'))
+      return { success: false, message: t('login.error_retry') }
     } catch (error: unknown) {
       if (isApiError(error) && error.requiresEmailVerification && error.email) {
         navigate(`/verify-email?email=${encodeURIComponent(error.email)}`, { replace: true })
@@ -84,8 +92,8 @@ export function useAuth() {
         error,
         setError,
         setValidationErrors,
-        'Login failed. Please check your credentials.',
-        'Network error. Please check your connection.'
+        t('login.error_generic'),
+        t('auth.common.error_network')
       )
       return { success: false, message }
     } finally {
@@ -100,11 +108,11 @@ export function useAuth() {
       setValidationErrors(null)
       setEmailExists(false)
 
-      const accountCheck = await checkAccountAction(userData.email)
+      const accountCheck = await checkAccountAction(userData.email, userData.turnstileToken)
       if (accountCheck.exists) {
         setEmailExists(true)
-        setValidationErrors({ email: ['An account with this email already exists.'] })
-        return { success: false, message: 'An account with this email already exists.' }
+        setValidationErrors({ email: [t('register.email_taken')] })
+        return { success: false, message: t('register.email_taken') }
       }
 
       const response = await registerAction(userData)
@@ -114,19 +122,19 @@ export function useAuth() {
         })
         return { success: true }
       }
-      setError('Registration failed. Please try again.')
-      return { success: false, message: 'Registration failed' }
+      setError(t('register.error_retry'))
+      return { success: false, message: t('register.error_retry') }
     } catch (error: unknown) {
       if (isApiError(error) && error.emailExists) {
         setEmailExists(true)
-        return { success: false, message: 'An account with this email already exists.' }
+        return { success: false, message: t('register.email_taken') }
       }
       const message = handleAuthError(
         error,
         setError,
         setValidationErrors,
-        'Registration failed. Please check your information.',
-        'Network error. Please check your connection.'
+        t('register.error_generic'),
+        t('auth.common.error_network')
       )
       return { success: false, message }
     } finally {
@@ -151,7 +159,8 @@ export function useAuth() {
       logout()
       queryClient.clear()
       navigate('/login', { replace: true })
-      return { success: false, message: getErrorMessage(error, 'Logout failed') }
+      // Callers ignore the message; a local session is already gone either way.
+      return { success: false }
     } finally {
       setLoading(false)
     }
@@ -165,12 +174,12 @@ export function useAuth() {
         updateUser(response.data)
         return { success: true, user: response.data }
       }
-      setError('Failed to fetch user data')
+      setError(t('auth.common.error_fetch_user'))
       return { success: false }
     } catch (error: unknown) {
       console.error('Get user error:', error)
-      setError('Failed to fetch user data')
-      return { success: false, message: getErrorMessage(error, 'Failed to fetch user data') }
+      setError(t('auth.common.error_fetch_user'))
+      return { success: false, message: getErrorMessage(error, t('auth.common.error_fetch_user')) }
     } finally {
       setLoading(false)
     }
@@ -182,12 +191,12 @@ export function useAuth() {
       clearError()
       const response = await verifyEmailAction(token, email)
       if (response.success) return { success: true, message: response.message }
-      setError(response.message || 'Email verification failed')
+      setError(response.message || t('verify_email.failed'))
       return { success: false, message: response.message }
     } catch (error: unknown) {
       console.error('Email verification error:', error)
-      setError('Email verification failed')
-      return { success: false, message: getErrorMessage(error, 'Email verification failed') }
+      setError(t('verify_email.failed'))
+      return { success: false, message: getErrorMessage(error, t('verify_email.failed')) }
     } finally {
       setLoading(false)
     }
@@ -199,14 +208,14 @@ export function useAuth() {
       clearError()
       const response = await resendVerificationAction(email)
       if (response.success) return { success: true, message: response.message }
-      setError(response.message || 'Failed to resend verification email')
+      setError(response.message || t('verify_email.error_resend'))
       return { success: false, message: response.message }
     } catch (error: unknown) {
       console.error('Resend verification error:', error)
-      setError('Failed to resend verification email')
+      setError(t('verify_email.error_resend'))
       return {
         success: false,
-        message: getErrorMessage(error, 'Failed to resend verification email'),
+        message: getErrorMessage(error, t('verify_email.error_resend')),
       }
     } finally {
       setLoading(false)

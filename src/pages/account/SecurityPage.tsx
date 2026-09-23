@@ -1,5 +1,6 @@
 import { AlertTriangle, KeyRound, Loader2, ShieldAlert, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { accountApi } from '@/api/account'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,7 @@ function showAccountError(
 }
 
 export default function SecurityPage() {
+  const { t } = useTranslation()
   const { success: showSuccess, error: showError } = useToast()
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
@@ -42,11 +44,11 @@ export default function SecurityPage() {
 
   const handleChangePassword = async () => {
     if (newPassword.length < 8) {
-      showError('New password must be at least 8 characters')
+      showError(t('account.security_err_min'))
       return
     }
     if (newPassword !== confirmPassword) {
-      showError('New passwords do not match')
+      showError(t('account.security_err_mismatch'))
       return
     }
     setSavingPassword(true)
@@ -56,12 +58,12 @@ export default function SecurityPage() {
         new_password: newPassword,
         new_password_confirmation: confirmPassword,
       })
-      showSuccess('Password changed')
+      showSuccess(t('account.security_changed'))
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch (e) {
-      showAccountError(showError, e, 'Failed to change password')
+      showAccountError(showError, e, t('account.security_change_failed'))
     } finally {
       setSavingPassword(false)
     }
@@ -69,11 +71,11 @@ export default function SecurityPage() {
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm.trim() !== 'DELETE') {
-      showError('Type DELETE to confirm')
+      showError(t('account.security_err_type'))
       return
     }
     if (!deletePassword) {
-      showError('Enter your password to confirm')
+      showError(t('account.security_err_password'))
       return
     }
     setDeleting(true)
@@ -81,9 +83,9 @@ export default function SecurityPage() {
       await accountApi.deactivateAccount(deletePassword)
       logout()
       navigate(paths.home, { replace: true })
-      showSuccess("Your account has been deactivated. We're sorry to see you go.")
+      showSuccess(t('account.security_deactivated'))
     } catch (e) {
-      showAccountError(showError, e, 'Failed to deactivate account')
+      showAccountError(showError, e, t('account.security_deactivate_failed'))
       setDeleting(false)
     }
   }
@@ -91,9 +93,11 @@ export default function SecurityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Security</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          {t('account.security_title')}
+        </h1>
         <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-          Manage your password and account safety.
+          {t('account.security_subtitle')}
         </p>
       </div>
 
@@ -101,13 +105,15 @@ export default function SecurityPage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
         <div className="flex items-center gap-2">
           <KeyRound className="h-4 w-4 text-gray-400" />
-          <h2 className="font-semibold text-gray-900 dark:text-white">Change password</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            {t('account.security_change_password')}
+          </h2>
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-              Current password <span className="text-red-500">*</span>
+              {t('account.security_current')} <span className="text-red-500">*</span>
             </Label>
             <Input
               type="password"
@@ -119,7 +125,7 @@ export default function SecurityPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-              New password <span className="text-red-500">*</span>
+              {t('account.security_new')} <span className="text-red-500">*</span>
             </Label>
             <Input
               type="password"
@@ -131,7 +137,7 @@ export default function SecurityPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-              Confirm new password <span className="text-red-500">*</span>
+              {t('account.security_confirm')} <span className="text-red-500">*</span>
             </Label>
             <Input
               type="password"
@@ -150,7 +156,7 @@ export default function SecurityPage() {
             className="inline-flex items-center gap-2"
           >
             {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Update password
+            {t('account.security_update')}
           </Button>
         </div>
       </div>
@@ -159,13 +165,17 @@ export default function SecurityPage() {
       <div className="rounded-2xl border border-red-200 bg-white p-6 dark:border-red-900/40 dark:bg-gray-900">
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 text-red-500" />
-          <h2 className="font-semibold text-gray-900 dark:text-white">Danger zone</h2>
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            {t('account.security_danger_zone')}
+          </h2>
         </div>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-medium text-gray-900 text-sm dark:text-white">Delete account</p>
+            <p className="font-medium text-gray-900 text-sm dark:text-white">
+              {t('account.security_delete')}
+            </p>
             <p className="mt-0.5 text-gray-500 text-sm dark:text-gray-400">
-              Permanently deactivate your account and sign out of all devices.
+              {t('account.security_delete_desc')}
             </p>
           </div>
           <Button
@@ -173,8 +183,8 @@ export default function SecurityPage() {
             onClick={() => setDeleteOpen(true)}
             className="shrink-0 border-red-300 text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
           >
-            <Trash2 className="mr-1.5 h-4 w-4" />
-            Delete account
+            <Trash2 className="me-1.5 h-4 w-4" />
+            {t('account.security_delete')}
           </Button>
         </div>
       </div>
@@ -183,24 +193,24 @@ export default function SecurityPage() {
       <Modal
         isOpen={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title="Delete your account?"
+        title={t('account.security_confirm_title')}
         maxWidth="md"
       >
         <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/20">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
           <div className="text-red-700 text-sm dark:text-red-400">
-            <p className="font-semibold">This action is permanent.</p>
-            <p className="mt-1">
-              Your account will be deactivated, you'll be signed out of all devices, and you will
-              lose access to your order history and saved addresses. This cannot be undone.
-            </p>
+            <p className="font-semibold">{t('account.security_permanent')}</p>
+            <p className="mt-1">{t('account.security_permanent_body')}</p>
           </div>
         </div>
 
         <div className="mt-5 space-y-4">
           <div className="space-y-1.5">
             <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-              Type <span className="font-semibold text-red-600">DELETE</span> to confirm
+              <Trans
+                i18nKey="account.security_type_confirm"
+                components={{ code: <span className="font-semibold text-red-600" /> }}
+              />
             </Label>
             <Input
               value={deleteConfirm}
@@ -211,7 +221,7 @@ export default function SecurityPage() {
           </div>
           <div className="space-y-1.5">
             <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-              Your password <span className="text-red-500">*</span>
+              {t('account.security_your_password')} <span className="text-red-500">*</span>
             </Label>
             <Input
               type="password"
@@ -225,15 +235,15 @@ export default function SecurityPage() {
 
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-            Cancel
+            {t('account.security_cancel')}
           </Button>
           <Button
             onClick={handleDeleteAccount}
             disabled={deleting}
             className="bg-red-600 hover:bg-red-700"
           >
-            {deleting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-            Delete account
+            {deleting ? <Loader2 className="me-1.5 h-4 w-4 animate-spin" /> : null}
+            {t('account.security_delete')}
           </Button>
         </div>
       </Modal>

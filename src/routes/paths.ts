@@ -19,10 +19,23 @@ export const paths = {
   // Public storefront
   products: '/products',
 
-  // Content (blogs / news / events)
+  // Content sections — one dedicated route per public post type.
+  // Keep in sync with POST_SECTIONS in @/lib/post-sections.
   blogs: '/blogs',
   news: '/news',
   events: '/events',
+  announcements: '/announcements',
+  pressReleases: '/press-releases',
+  promotions: '/promotions',
+  updates: '/updates',
+  showcases: '/showcases',
+  guides: '/guides',
+  newsletters: '/newsletters',
+
+  // Support
+  contact: '/contact',
+  feedback: '/feedback',
+  unsubscribe: '/unsubscribe/:token',
 
   // Legal / compliance
   policiesPrivacy: '/policies/privacy-policy',

@@ -55,7 +55,9 @@ export const accountApi = {
   },
 
   async order(uuid: string): Promise<Order> {
-    const res = await api.get(`account/orders/${uuid}`, { headers: authHeaders() })
+    const res = await api.get(`account/orders/${encodeURIComponent(uuid)}`, {
+      headers: authHeaders(),
+    })
     const body = await parseApiResponse<Order>(res)
     return body.data as Order
   },

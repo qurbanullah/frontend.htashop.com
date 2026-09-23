@@ -41,10 +41,24 @@ async function applySentry(enabled: boolean): Promise<void> {
     Sentry.init({
       dsn,
       environment: (import.meta.env.VITE_APP_ENV as string) || 'production',
-      integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+      integrations: [
+        Sentry.browserTracingIntegration(),
+        Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
+      ],
       tracesSampleRate,
       replaysSessionSampleRate: 0.1,
+      // Replays an error session in full — the mask flags above keep text/media
+      // out of it, and `beforeSend` below strips request data.
       replaysOnErrorSampleRate: 1.0,
+      // Never ship URLs (they can carry tokens, e.g. ?consent_token=…) or bodies.
+      beforeSend(event) {
+        if (event.request) {
+          delete event.request.query_string
+          delete event.request.data
+          delete event.request.cookies
+        }
+        return event
+      },
     })
     return
   }

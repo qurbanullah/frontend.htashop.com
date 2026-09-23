@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
+import { api } from '@/api/client'
+import type { ApiResponse } from '@/lib/api-response'
 
 export const AUTH_STORAGE_KEY = 'auth-storage'
 
@@ -33,7 +35,6 @@ export interface User {
 
 interface AuthState {
   user: User | null
-  token: string | null
   isAuthenticated: boolean
   isInitializing: boolean
   isLoading: boolean
@@ -41,14 +42,14 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (user: User, token: string) => void
+  login: (user: User) => void
   logout: () => void
   setUser: (user: User) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   updateUser: (user: Partial<User>) => void
   clearError: () => void
-  initialize: () => void
+  initialize: () => Promise<void>
 }
 
 type AuthStore = AuthState & AuthActions
@@ -56,16 +57,14 @@ type AuthStore = AuthState & AuthActions
 const persistedStore = persist(
   immer<AuthStore>((set) => ({
     user: null,
-    token: null,
     isAuthenticated: false,
     isInitializing: true,
     isLoading: false,
     error: null,
 
-    login: (user: User, token: string) =>
+    login: (user: User) =>
       set((state) => {
         state.user = user
-        state.token = token
         state.isAuthenticated = true
         state.isInitializing = false
         state.isLoading = false
@@ -75,7 +74,6 @@ const persistedStore = persist(
     logout: () =>
       set((state) => {
         state.user = null
-        state.token = null
         state.isAuthenticated = false
         state.isInitializing = false
         state.isLoading = false
@@ -110,22 +108,55 @@ const persistedStore = persist(
         }
       }),
 
-    initialize: () => {
+    initialize: async () => {
       set((draft) => {
-        draft.isInitializing = false
+        draft.isInitializing = true
       })
+
+      // The access token is now stored in an httpOnly cookie (set by the API
+      // on login), so no Authorization header is needed here. The cookie is
+      // sent automatically because the API client uses `credentials: 'include'`.
+      try {
+        const body = await api.get('user').json<ApiResponse<User>>()
+
+        if (body.success && body.data) {
+          set((draft) => {
+            draft.user = body.data
+            draft.isAuthenticated = true
+            draft.isInitializing = false
+          })
+          return
+        }
+
+        // Explicit invalid-session response.
+        set((draft) => {
+          draft.user = null
+          draft.isAuthenticated = false
+          draft.isInitializing = false
+        })
+      } catch (error) {
+        const status = (error as { response?: { status?: number } } | null)?.response?.status
+        if (status === 401 || status === 403) {
+          set((draft) => {
+            draft.user = null
+            draft.isAuthenticated = false
+            draft.isInitializing = false
+          })
+        } else {
+          // Network/timeout — keep the persisted session; a later request can retry.
+          set((draft) => {
+            draft.isInitializing = false
+          })
+        }
+      }
     },
   })),
   {
     name: AUTH_STORAGE_KEY,
     partialize: (state) => ({
       user: state.user,
-      token: state.token,
       isAuthenticated: state.isAuthenticated,
     }),
-    onRehydrateStorage: () => (state) => {
-      state?.initialize()
-    },
   }
 )
 

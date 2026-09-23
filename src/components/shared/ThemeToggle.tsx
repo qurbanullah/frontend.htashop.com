@@ -1,10 +1,12 @@
 import { Moon, Sun } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export function ThemeToggle() {
   const { theme, setTheme, isDarkMode } = useTheme()
+  const { t } = useTranslation()
 
-  const label = isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
+  const label = isDarkMode ? t('shell.switch_to_light') : t('shell.switch_to_dark')
 
   const toggleTheme = () => {
     if (theme === 'system') {

@@ -1,4 +1,9 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.htashop.com/sitemap.xml
+Disallow: /account
+Disallow: /checkout
+Disallow: /orders
+Disallow: /unsubscribe
+
+Sitemap: https://htashop.com/sitemap.xml

@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, FileText, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { type PostSummary, postsApi } from '@/api/posts'
 import { PostCard } from '@/components/posts/PostCard'
 
 interface PostListViewProps {
-  type: 'blog' | 'news' | 'event'
+  type: string
   title: string
   subtitle?: string
 }
@@ -28,7 +29,7 @@ function SkeletonGrid() {
           key={index}
           className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
         >
-          <div className="aspect-[16/9] animate-pulse bg-gray-200 dark:bg-gray-800" />
+          <div className="aspect-[4/3] animate-pulse bg-gray-200 sm:aspect-video dark:bg-gray-800" />
           <div className="space-y-2 p-5">
             <div className="h-3 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
             <div className="h-4 w-4/5 animate-pulse rounded bg-gray-200 dark:bg-gray-800" />
@@ -41,6 +42,7 @@ function SkeletonGrid() {
 }
 
 export function PostListView({ type, title, subtitle }: PostListViewProps) {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const debouncedSearch = useDebouncedValue(search)
@@ -51,15 +53,12 @@ export function PostListView({ type, title, subtitle }: PostListViewProps) {
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['posts', type, debouncedSearch, page],
-    queryFn: () => {
-      const fetcher =
-        type === 'blog' ? postsApi.blogs : type === 'news' ? postsApi.news : postsApi.events
-      return fetcher({
+    queryFn: () =>
+      postsApi.byType(type, {
         search: debouncedSearch || undefined,
         page,
         per_page: 12,
-      })
-    },
+      }),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -76,13 +75,13 @@ export function PostListView({ type, title, subtitle }: PostListViewProps) {
           {subtitle && <p className="mt-2 text-gray-600 dark:text-gray-300">{subtitle}</p>}
         </div>
         <div className="relative w-full sm:w-80">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={`Search ${title.toLowerCase()}...`}
-            className="h-11 w-full rounded-xl border border-gray-300 bg-white pl-10 text-gray-900 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+            placeholder={t('posts.search_placeholder', { type: title })}
+            className="h-11 w-full rounded-xl border border-gray-300 bg-white ps-10 text-gray-900 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
         </div>
       </div>
@@ -94,12 +93,10 @@ export function PostListView({ type, title, subtitle }: PostListViewProps) {
           <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-200 border-dashed py-24 text-center dark:border-gray-800">
             <FileText className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
             <h3 className="font-semibold text-gray-900 text-lg dark:text-white">
-              No {title.toLowerCase()} found
+              {t('posts.empty_title', { type: title })}
             </h3>
             <p className="mt-1 max-w-sm text-gray-500 text-sm dark:text-gray-400">
-              {search
-                ? 'Try adjusting your search to find what you are looking for.'
-                : 'Check back soon — new content is on the way.'}
+              {search ? t('posts.empty_filtered') : t('posts.empty_soon')}
             </p>
           </div>
         ) : (
@@ -118,10 +115,13 @@ export function PostListView({ type, title, subtitle }: PostListViewProps) {
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="inline-flex h-10 items-center gap-1 rounded-lg border border-gray-300 bg-white px-4 font-medium text-gray-700 text-sm disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
-                  <ChevronLeft className="h-4 w-4" /> Previous
+                  <ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t('buttons.previous')}
                 </button>
                 <span className="text-gray-500 text-sm dark:text-gray-400">
-                  Page {meta.current_page} of {meta.last_page}
+                  {t('posts.page_of', {
+                    current: meta.current_page,
+                    total: meta.last_page,
+                  })}
                 </span>
                 <button
                   type="button"
@@ -129,7 +129,7 @@ export function PostListView({ type, title, subtitle }: PostListViewProps) {
                   onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
                   className="inline-flex h-10 items-center gap-1 rounded-lg border border-gray-300 bg-white px-4 font-medium text-gray-700 text-sm disabled:opacity-40 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
                 >
-                  Next <ChevronRight className="h-4 w-4" />
+                  {t('buttons.next')} <ChevronRight className="h-4 w-4 rtl:rotate-180" />
                 </button>
               </div>
             )}

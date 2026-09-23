@@ -12,12 +12,16 @@ import {
   User,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, type SearchSuggestion } from '@/api/catalog'
 import type { Category } from '@/api/categories'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { Logo } from '@/components/shared/Logo'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { useAuth } from '@/hooks/auth/useAuth'
+import { cdnUrl } from '@/lib/cdn'
+import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import type { User as AuthUser } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
@@ -39,10 +43,6 @@ function getUserInitials(
   return user.name?.charAt(0)?.toUpperCase() ?? 'U'
 }
 
-function formatPrice(price: number | string | null): string {
-  return `$${Number(price ?? 0).toLocaleString()}`
-}
-
 // ── Search results dropdown ──
 
 function SearchDropdown({
@@ -56,12 +56,18 @@ function SearchDropdown({
   query: string
   onSelect: (product: SearchSuggestion | null) => void
 }) {
+  const { t } = useTranslation()
+
   if (isFetching) {
-    return <div className="px-4 py-6 text-center text-gray-400 text-sm">Searching…</div>
+    return <div className="px-4 py-6 text-center text-gray-400 text-sm">{t('shell.searching')}</div>
   }
 
   if (results.length === 0) {
-    return <div className="px-4 py-6 text-center text-gray-400 text-sm">No products found</div>
+    return (
+      <div className="px-4 py-6 text-center text-gray-400 text-sm">
+        {t('shell.no_products_found')}
+      </div>
+    )
   }
 
   return (
@@ -96,7 +102,7 @@ function SearchDropdown({
               )}
             </div>
             <span className="shrink-0 font-semibold text-gray-900 text-sm dark:text-white">
-              {formatPrice(product.price)}
+              {formatMoney(product.price, product.currency)}
             </span>
           </Link>
         ))}
@@ -107,7 +113,7 @@ function SearchDropdown({
         onClick={() => onSelect(null)}
         className="block border-gray-100 border-t px-4 py-2.5 text-center font-medium text-blue-600 text-sm hover:bg-gray-50 dark:border-gray-800 dark:text-blue-400 dark:hover:bg-gray-800"
       >
-        See all results for “{query}”
+        {t('shell.see_all_results', { query })}
       </Link>
     </>
   )
@@ -130,21 +136,19 @@ function AccountMenu({
   onClose: () => void
   onLogout: () => void
 }) {
+  const { t } = useTranslation()
+
   return (
     <div className="relative">
       <button
         type="button"
         onClick={onToggle}
         className="flex items-center gap-1 rounded-lg p-1.5 text-white transition-colors hover:bg-white/10"
-        aria-label="Account menu"
+        aria-label={t('shell.account_menu')}
         aria-expanded={menuOpen}
       >
         {avatar ? (
-          <img
-            src={avatar}
-            alt={user?.name ?? 'User'}
-            className="h-8 w-8 rounded-full object-cover"
-          />
+          <img src={avatar} alt={user?.name ?? ''} className="h-8 w-8 rounded-full object-cover" />
         ) : (
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 font-semibold text-white text-xs">
             {getUserInitials(user)}
@@ -157,11 +161,11 @@ function AccountMenu({
         <>
           <button
             type="button"
-            aria-label="Close menu"
+            aria-label={t('shell.close_menu')}
             className="fixed inset-0 z-40 cursor-default"
             onClick={onClose}
           />
-          <div className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          <div className="absolute end-0 z-50 mt-2 w-60 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
             <div className="border-gray-100 border-b px-4 py-3 dark:border-gray-700">
               <p className="truncate font-semibold text-gray-900 text-sm dark:text-white">
                 {user?.name}
@@ -173,42 +177,42 @@ function AccountMenu({
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <LayoutDashboard className="h-4 w-4 text-gray-400" /> My Account
+              <LayoutDashboard className="h-4 w-4 text-gray-400" /> {t('shell.my_account')}
             </Link>
             <Link
               to={paths.accountOrders}
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <Package className="h-4 w-4 text-gray-400" /> Orders
+              <Package className="h-4 w-4 text-gray-400" /> {t('shell.orders')}
             </Link>
             <Link
               to={paths.accountAddresses}
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <MapPin className="h-4 w-4 text-gray-400" /> Addresses
+              <MapPin className="h-4 w-4 text-gray-400" /> {t('shell.addresses')}
             </Link>
             <Link
               to={paths.accountProfile}
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <User className="h-4 w-4 text-gray-400" /> Profile
+              <User className="h-4 w-4 text-gray-400" /> {t('shell.profile')}
             </Link>
             <Link
               to={paths.accountSecurity}
               onClick={onClose}
               className="flex items-center gap-3 px-4 py-2.5 text-gray-700 text-sm hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <Settings className="h-4 w-4 text-gray-400" /> Security
+              <Settings className="h-4 w-4 text-gray-400" /> {t('shell.security')}
             </Link>
             <button
               type="button"
               onClick={onLogout}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-red-600 text-sm hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
-              <LogOut className="h-4 w-4" /> Sign out
+              <LogOut className="h-4 w-4" /> {t('shell.sign_out')}
             </button>
           </div>
         </>
@@ -221,6 +225,7 @@ function AccountMenu({
 
 export function TopSearchBar({ categories }: { categories: Category[] }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { user, isAuthenticated, logout } = useAuth()
   const cartCount = useCartStore((s) => s.count)
   const openCart = useCartStore((s) => s.openDrawer)
@@ -266,7 +271,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
   })
 
   const { data: trending = [] } = useQuery({
-    queryKey: ['search-trending-topbar'],
+    queryKey: ['search-trending', 8],
     queryFn: () => catalogApi.trending(8),
     enabled: searchOpen && query.trim() === '',
     staleTime: 15 * 60 * 1000,
@@ -285,11 +290,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
   }
 
   const avatarUrl = user?.avatar_urls?.medium || user?.avatar_url || null
-  const avatar = avatarUrl
-    ? avatarUrl.startsWith('http')
-      ? avatarUrl
-      : `https://cdn.htashop.com/${avatarUrl}`
-    : null
+  const avatar = cdnUrl(avatarUrl) || null
 
   const handleLogout = () => {
     setMenuOpen(false)
@@ -304,7 +305,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
           type="button"
           onClick={openCategories}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10 lg:hidden"
-          aria-label="Open menu"
+          aria-label={t('shell.open_menu')}
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -313,7 +314,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
         <Link
           to={paths.home}
           className="flex shrink-0 items-center gap-2"
-          aria-label="HTAShop home"
+          aria-label={t('shell.home_link')}
         >
           <Logo width={34} />
           <span className="hidden font-extrabold text-3xl text-white tracking-tight md:block">
@@ -325,15 +326,15 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
         <div ref={searchRef} className="relative w-full min-w-0 flex-1">
           <form
             onSubmit={submitSearch}
-            className="flex items-stretch overflow-hidden rounded-lg pl-6 sm:mx-auto sm:max-w-6xl"
+            className="flex items-stretch overflow-hidden rounded-lg ps-6 sm:mx-auto sm:max-w-6xl"
           >
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="hidden w-40 shrink-0 border-gray-300 border-r bg-gray-100 px-3 text-gray-700 text-sm outline-none sm:block dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-              aria-label="Search category"
+              className="hidden w-40 shrink-0 border-gray-300 border-e bg-gray-100 px-3 text-gray-700 text-sm outline-none sm:block dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+              aria-label={t('shell.search_category')}
             >
-              <option value="">All</option>
+              <option value="">{t('shell.all')}</option>
               {rootCategories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -345,23 +346,23 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setSearchOpen(true)}
-              placeholder="Search htashop"
+              placeholder={t('shell.search_placeholder')}
               className="h-10 min-w-0 flex-1 bg-white px-3 text-gray-900 text-sm outline-none placeholder:text-gray-400 dark:bg-gray-900 dark:text-white"
             />
 
             <button
               type="submit"
               className="flex h-10 w-12 shrink-0 items-center justify-center bg-sky-500 text-gray-900 transition-colors hover:bg-amber-400"
-              aria-label="Search"
+              aria-label={t('shell.search_button')}
             >
               <Search className="h-5 w-5" />
             </button>
           </form>
 
           {searchOpen && query.trim() === '' && trending.length > 0 && (
-            <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+            <div className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-900">
               <p className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-                Trending searches
+                {t('shell.trending_searches')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {trending.map(({ query: term, count }) => (
@@ -383,7 +384,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
           )}
 
           {showDropdown && (
-            <div className="absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+            <div className="absolute inset-x-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
               <SearchDropdown
                 isFetching={isFetching}
                 results={searchResults}
@@ -401,17 +402,19 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
 
         {/* Actions */}
         <div className="flex shrink-0 items-center gap-1">
+          <LanguageSwitcher />
+
           <ThemeToggle />
 
           <button
             type="button"
             onClick={openCart}
             className="relative rounded-lg p-2 text-white transition-colors hover:bg-white/10"
-            aria-label="Open cart"
+            aria-label={t('shell.open_cart')}
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 font-bold text-[10px] text-gray-900">
+              <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 font-bold text-[10px] text-gray-900">
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
             )}
@@ -432,13 +435,13 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
                 to={paths.login}
                 className="rounded-lg px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-white/10"
               >
-                Sign in
+                {t('shell.sign_in')}
               </Link>
               <Link
                 to={paths.register}
                 className="rounded-lg bg-sky-500 px-3 py-2 font-semibold text-gray-900 text-sm transition-colors hover:bg-amber-400"
               >
-                Register
+                {t('shell.register')}
               </Link>
             </div>
           )}

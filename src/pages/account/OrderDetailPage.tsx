@@ -9,18 +9,15 @@ import {
   Package,
   ShoppingCart,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { accountApi } from '@/api/account'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useToast } from '@/components/ui/Toaster'
+import { COMPANY } from '@/lib/company'
+import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
-
-function formatMoney(value: number | string | null | undefined, currency?: string | null) {
-  const num = Number(value)
-  if (!Number.isFinite(num)) return '—'
-  return `${currency ?? 'USD'} ${num.toLocaleString()}`
-}
 
 const TIMELINE = ['pending', 'confirmed', 'processing', 'shipped', 'delivered']
 
@@ -36,6 +33,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: order detail page — renders statuses, addresses, items and reorder flow with many conditional sections; reorder handler already extracted
 export default function OrderDetailPage() {
+  const { t, i18n } = useTranslation()
   const { uuid } = useParams<{ uuid: string }>()
   const { success: showSuccess, error: showError } = useToast()
   const addToCart = useCartStore((s) => s.addItem)
@@ -54,7 +52,7 @@ export default function OrderDetailPage() {
     if (!order?.items?.length) return
     const reorderable = order.items.filter((item) => item.product_id != null)
     if (reorderable.length === 0) {
-      showError('No reorderable items found')
+      showError(t('account.order_no_reorderable'))
       return
     }
     try {
@@ -66,9 +64,9 @@ export default function OrderDetailPage() {
           quantity: Math.max(1, Math.round(Number(item.quantity) || 1)),
         })
       }
-      showSuccess('Items added to your cart')
+      showSuccess(t('account.order_added_to_cart'))
     } catch {
-      showError('Some items could not be added to the cart')
+      showError(t('account.order_partial_add'))
     }
   }
 
@@ -84,10 +82,10 @@ export default function OrderDetailPage() {
     return (
       <EmptyState
         icon={Package}
-        title="Order not found"
-        description="This order may not exist or you may not have access to it."
+        title={t('account.order_not_found')}
+        description={t('account.order_not_found_body')}
         action={{
-          label: 'Back to orders',
+          label: t('account.order_back'),
           onClick: () => (window.location.href = paths.accountOrders),
         }}
       />
@@ -106,7 +104,7 @@ export default function OrderDetailPage() {
           to={paths.accountOrders}
           className="inline-flex items-center gap-1.5 font-medium text-blue-600 text-sm hover:underline dark:text-blue-400"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to orders
+          <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" /> {t('account.order_back')}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-bold text-2xl text-gray-900 dark:text-white">{order.order_number}</h1>
@@ -117,7 +115,9 @@ export default function OrderDetailPage() {
           </span>
         </div>
         <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-          Placed on {order.placed_at ? new Date(order.placed_at).toLocaleString() : '—'}
+          {t('account.order_placed_on', {
+            date: order.placed_at ? new Date(order.placed_at).toLocaleString(i18n.language) : '—',
+          })}
         </p>
       </div>
 
@@ -145,7 +145,7 @@ export default function OrderDetailPage() {
                   <span
                     className={`mt-2 hidden font-medium text-xs sm:block ${index <= statusIndex ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
                   >
-                    {step.charAt(0).toUpperCase() + step.slice(1)}
+                    {t(`account.status.${step}`)}
                   </span>
                 </div>
                 {index < TIMELINE.length - 1 && (
@@ -167,7 +167,7 @@ export default function OrderDetailPage() {
               : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300'
           }`}
         >
-          This order has been {order.status}.
+          {t('account.order_terminal', { status: t(`account.status.${order.status}`) })}
         </div>
       )}
 
@@ -177,7 +177,7 @@ export default function OrderDetailPage() {
           <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
             <div className="border-gray-100 border-b px-5 py-4 dark:border-gray-800">
               <h2 className="font-semibold text-gray-900 dark:text-white">
-                Items ({order.items?.length ?? 0})
+                {t('account.order_items', { count: order.items?.length ?? 0 })}
               </h2>
             </div>
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -198,9 +198,16 @@ export default function OrderDetailPage() {
                     <p className="line-clamp-2 font-medium text-gray-900 text-sm dark:text-white">
                       {item.name}
                     </p>
-                    {item.sku && <p className="mt-0.5 text-gray-400 text-xs">SKU: {item.sku}</p>}
+                    {item.sku && (
+                      <p className="mt-0.5 text-gray-400 text-xs">
+                        {t('account.order_sku', { sku: item.sku })}
+                      </p>
+                    )}
                     <p className="mt-1 text-gray-500 text-xs dark:text-gray-400">
-                      Qty: {item.quantity} × {formatMoney(item.unit_price, item.currency)}
+                      {t('account.order_qty', {
+                        quantity: item.quantity,
+                        price: formatMoney(item.unit_price, item.currency),
+                      })}
                     </p>
                   </div>
                   <div className="text-right">
@@ -221,29 +228,29 @@ export default function OrderDetailPage() {
             {/* Totals */}
             <div className="space-y-2 border-gray-100 border-t bg-gray-50/60 px-5 py-4 dark:border-gray-800 dark:bg-gray-900/50">
               <div className="flex justify-between text-gray-600 text-sm dark:text-gray-300">
-                <span>Subtotal</span>
+                <span>{t('account.order_subtotal')}</span>
                 <span>{formatMoney(order.subtotal, order.currency)}</span>
               </div>
               {Number(order.shipping_fee) > 0 && (
                 <div className="flex justify-between text-gray-600 text-sm dark:text-gray-300">
-                  <span>Shipping</span>
+                  <span>{t('account.order_shipping')}</span>
                   <span>{formatMoney(order.shipping_fee, order.currency)}</span>
                 </div>
               )}
               {Number(order.tax) > 0 && (
                 <div className="flex justify-between text-gray-600 text-sm dark:text-gray-300">
-                  <span>Tax</span>
+                  <span>{t('account.order_tax')}</span>
                   <span>{formatMoney(order.tax, order.currency)}</span>
                 </div>
               )}
               {Number(order.discount) > 0 && (
                 <div className="flex justify-between text-green-600 text-sm dark:text-green-400">
-                  <span>Discount</span>
+                  <span>{t('account.order_discount')}</span>
                   <span>−{formatMoney(order.discount, order.currency)}</span>
                 </div>
               )}
               <div className="flex justify-between border-gray-200 border-t pt-2 font-bold text-base text-gray-900 dark:border-gray-700 dark:text-white">
-                <span>Total</span>
+                <span>{t('account.order_total')}</span>
                 <span>{formatMoney(order.total_amount, order.currency)}</span>
               </div>
             </div>
@@ -256,7 +263,9 @@ export default function OrderDetailPage() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
             <div className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-gray-400" />
-              <h3 className="font-semibold text-gray-900 text-sm dark:text-white">Payment</h3>
+              <h3 className="font-semibold text-gray-900 text-sm dark:text-white">
+                {t('account.order_payment')}
+              </h3>
             </div>
             {primaryPayment ? (
               <div className="mt-3 space-y-1.5 text-sm">
@@ -273,11 +282,13 @@ export default function OrderDetailPage() {
                   {primaryPayment.status}
                 </span>
                 <p className="text-gray-400 text-xs">
-                  Amount: {formatMoney(primaryPayment.amount, primaryPayment.currency)}
+                  {t('account.order_payment_amount', {
+                    amount: formatMoney(primaryPayment.amount, primaryPayment.currency),
+                  })}
                 </p>
               </div>
             ) : (
-              <p className="mt-3 text-gray-400 text-sm">No payment recorded yet.</p>
+              <p className="mt-3 text-gray-400 text-sm">{t('account.order_no_payment')}</p>
             )}
           </div>
 
@@ -287,7 +298,7 @@ export default function OrderDetailPage() {
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-gray-400" />
                 <h3 className="font-semibold text-gray-900 text-sm dark:text-white">
-                  Shipping address
+                  {t('account.order_shipping_address')}
                 </h3>
               </div>
               <address className="mt-3 space-y-0.5 text-gray-600 text-sm not-italic leading-relaxed dark:text-gray-300">
@@ -327,13 +338,15 @@ export default function OrderDetailPage() {
               disabled={order.status === 'cancelled'}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
-              <ShoppingCart className="h-4 w-4" /> Reorder
+              <ShoppingCart className="h-4 w-4" /> {t('account.order_reorder')}
             </button>
             <a
-              href={`mailto:support@htashop.com?subject=${encodeURIComponent(`Help with order ${order.order_number}`)}`}
+              href={`mailto:${COMPANY.email}?subject=${encodeURIComponent(
+                t('account.order_support_subject', { order: order.order_number })
+              )}`}
               className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              <FileText className="h-4 w-4" /> Order support
+              <FileText className="h-4 w-4" /> {t('account.order_support')}
             </a>
           </div>
         </div>

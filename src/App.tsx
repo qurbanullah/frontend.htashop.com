@@ -10,7 +10,7 @@ export default function App() {
   const initialize = useAuthStore((s) => s.initialize)
 
   useEffect(() => {
-    initialize()
+    void initialize()
   }, [initialize])
 
   return <AppRouter />

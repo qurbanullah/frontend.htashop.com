@@ -23,7 +23,7 @@ function applyCart(data: CartData) {
     items: data.items ?? [],
     count: data.count ?? 0,
     subtotal: data.subtotal ?? 0,
-    currency: data.currency ?? 'USD',
+    currency: data.currency ?? 'PKR',
   }
 }
 

@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { Banner } from '@/api/banners'
 import { useBanners } from '@/hooks/useBanners'
+import { toPhysicalScrollDelta } from '@/lib/rtl'
 import { paths } from '@/routes/paths'
 
 interface BannerZoneProps {
@@ -130,6 +132,7 @@ function ImageBanner({ banner, fullWidth }: { banner: Banner; fullWidth: boolean
  * page.
  */
 export function SplitBannerCarousel({ banners }: { banners: Banner[] }) {
+  const { t } = useTranslation()
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [canScroll, setCanScroll] = useState(false)
 
@@ -159,7 +162,7 @@ export function SplitBannerCarousel({ banners }: { banners: Banner[] }) {
 
     const tile = el.querySelector<HTMLElement>('[data-split-tile]')
     const step = tile ? tile.offsetWidth + 16 : el.clientWidth
-    el.scrollBy({ left: direction * step, behavior: 'smooth' })
+    el.scrollBy({ left: toPhysicalScrollDelta(el, direction * step), behavior: 'smooth' })
   }
 
   return (
@@ -186,18 +189,18 @@ export function SplitBannerCarousel({ banners }: { banners: Banner[] }) {
           <button
             type="button"
             onClick={() => scrollByTile(-1)}
-            className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
-            aria-label="Previous split banners"
+            className="absolute start-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
+            aria-label={t('banner.prev_split')}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
           </button>
           <button
             type="button"
             onClick={() => scrollByTile(1)}
-            className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
-            aria-label="Next split banners"
+            className="absolute end-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
+            aria-label={t('banner.next_split')}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5 rtl:rotate-180" />
           </button>
         </>
       )}
@@ -210,14 +213,19 @@ export function SplitBannerCarousel({ banners }: { banners: Banner[] }) {
 /* ------------------------------------------------------------------ */
 
 function HeroCarousel({ banners, fullWidth }: { banners: Banner[]; fullWidth: boolean }) {
+  const { t } = useTranslation()
   const [index, setIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
   const count = banners.length
 
+  // Auto-advance — pausable (WCAG 2.2.2) and disabled outright when the user
+  // prefers reduced motion.
   useEffect(() => {
-    if (count <= 1) return
+    if (count <= 1 || isPaused) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const timer = setInterval(() => setIndex((i) => (i + 1) % count), 5000)
     return () => clearInterval(timer)
-  }, [count])
+  }, [count, isPaused])
 
   if (count === 0) return null
 
@@ -230,6 +238,8 @@ function HeroCarousel({ banners, fullWidth }: { banners: Banner[]; fullWidth: bo
       {banners.map((b, i) => (
         <div
           key={b.uuid}
+          // `inert` keeps the hidden slides' links out of the tab order.
+          inert={i !== index}
           className={`absolute inset-0 transition-opacity duration-500 ${i === index ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           aria-hidden={i !== index}
         >
@@ -238,22 +248,33 @@ function HeroCarousel({ banners, fullWidth }: { banners: Banner[]; fullWidth: bo
       ))}
 
       {count > 1 && (
+        <button
+          type="button"
+          onClick={() => setIsPaused((p) => !p)}
+          aria-label={isPaused ? t('banner.play') : t('banner.pause')}
+          className="absolute end-3 bottom-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white dark:bg-gray-900/90 dark:text-gray-200 dark:hover:bg-gray-900"
+        >
+          {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+        </button>
+      )}
+
+      {count > 1 && (
         <>
           <button
             type="button"
             onClick={() => go(-1)}
-            className="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white"
-            aria-label="Previous banner"
+            className="absolute start-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white"
+            aria-label={t('banner.prev')}
           >
-            <ChevronLeft className="h-5 w-5" />
+            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
           </button>
           <button
             type="button"
             onClick={() => go(1)}
-            className="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white"
-            aria-label="Next banner"
+            className="absolute end-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow transition-colors hover:bg-white"
+            aria-label={t('banner.next')}
           >
-            <ChevronRight className="h-5 w-5" />
+            <ChevronRight className="h-5 w-5 rtl:rotate-180" />
           </button>
           <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
             {banners.map((b, i) => (
@@ -262,7 +283,7 @@ function HeroCarousel({ banners, fullWidth }: { banners: Banner[]; fullWidth: bo
                 type="button"
                 onClick={() => setIndex(i)}
                 className={`h-1.5 rounded-full transition-all ${i === index ? 'w-6 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'}`}
-                aria-label={`Go to banner ${i + 1}`}
+                aria-label={t('banner.go_to', { number: i + 1 })}
               />
             ))}
           </div>

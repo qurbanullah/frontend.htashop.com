@@ -1,11 +1,13 @@
 import { LegalLayout } from '@/components/legal/LegalLayout'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
+import { paths } from '@/routes/paths'
 
 const SECTIONS = [
   {
     heading: '1. Introduction',
-    body: 'This website and the HTAShop platform (the "Service") are owned and operated by High Tech Advancement Solutions (Private) Limited, CUIN 0321375 (hereinafter "HTAShop", "we", "us" and "our"). Our principal place of business is in Pakistan. We offer this website, including all information, tools, products, and services available from this website, to you, the user, conditioned upon your acceptance of all terms, conditions, policies, and notices stated here.',
+    body: `This website and the HTAShop platform (the "Service") are owned and operated by ${COMPANY.name}, CUIN ${COMPANY.cuin} (hereinafter "HTAShop", "we", "us" and "our"). Our principal place of business is at ${COMPANY_ADDRESS_LINE}. We offer this website, including all information, tools, products, and services available from this website, to you, the user, conditioned upon your acceptance of all terms, conditions, policies, and notices stated here.`,
     bullets: [
-      'If you have any problems placing your order on our website, or require support after placing an order, contact us at support@htashop.com or +92 300 0000000.',
+      `If you have any problems placing your order on our website, or require support after placing an order, contact us at ${COMPANY.email} or ${COMPANY.phoneDisplay}.`,
     ],
   },
   {
@@ -35,7 +37,7 @@ const SECTIONS = [
     heading: '5. Pricing and Payment',
     bullets: [
       'Prices are displayed in the applicable currency and may change at any time without notice. The price at the time you place an order is the price you pay.',
-      'We accept Cash on Delivery (COD) and, where available, online payment methods such as Safepay, JazzCash, Easypaisa, and Upaisa.',
+      'We accept Cash on Delivery (COD) and, where available, online payment methods such as Safepay, JazzCash, Easypaisa, and UPaisa.',
       'Payment card processing is performed by PCI-DSS compliant payment partners. We never store your full card details.',
       'All payments must be authorised and cleared before orders are dispatched. Failed payments may result in order cancellation.',
       'You are responsible for applicable taxes, duties, or fees charged at checkout or upon delivery.',
@@ -99,7 +101,7 @@ const SECTIONS = [
   },
   {
     heading: '14. Contact',
-    body: 'Questions about these Terms? Contact us at support@htashop.com or +92 300 0000000, or write to High Tech Advancement Solutions (Private) Limited, Pakistan — CUIN 0321375.',
+    body: `Questions about these Terms? Contact us at ${COMPANY.email} or ${COMPANY.phoneDisplay}, or write to ${COMPANY.name}, ${COMPANY_ADDRESS_LINE} — CUIN ${COMPANY.cuin}.`,
   },
 ]
 
@@ -108,6 +110,7 @@ export default function TermsOfUsePage() {
     <LegalLayout
       title="Terms of Use"
       description="The terms and conditions that govern your use of the HTAShop platform and purchases."
+      canonical={paths.policiesTerms}
       updated="August 22, 2026"
       sections={SECTIONS}
     />

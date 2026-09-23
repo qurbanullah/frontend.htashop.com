@@ -12,6 +12,7 @@ import {
   ZoomIn,
 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { catalogApi } from '@/api/catalog'
 import { reviewsApi } from '@/api/reviews'
@@ -19,17 +20,15 @@ import { BannerZone } from '@/components/banners/BannerRenderer'
 import { ProductImageModal } from '@/components/catalog/ProductImageModal'
 import { ProductReviews } from '@/components/catalog/ProductReviews'
 import { Seo, siteUrl } from '@/components/seo/Seo'
+import { COMPANY } from '@/lib/company'
+import { buildSrcset, PRODUCT_IMAGE_LADDER, preferUrl } from '@/lib/image-srcset'
+import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
 
-function formatMoney(value: number | string | null | undefined, currency?: string | null) {
-  const num = Number(value)
-  if (!Number.isFinite(num)) return '—'
-  return `${currency ?? 'USD'} ${num.toLocaleString()}`
-}
-
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: product detail page — gallery, variant selector, quantity, add-to-cart and spec rendering are inherently branch-heavy; galleries and pricing already extracted to helpers
 export default function ProductDetailPage() {
+  const { t } = useTranslation()
   const { slugUuid } = useParams<{ slugUuid: string }>()
   const [selectedImage, setSelectedImage] = useState(0)
   const [imageModalOpen, setImageModalOpen] = useState(false)
@@ -59,8 +58,8 @@ export default function ProductDetailPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Seo
-          title="Product"
-          description="Loading product details."
+          title={t('product.loading_title')}
+          description={t('product.loading_description')}
           canonical={slugUuid ? `/products/${slugUuid}` : undefined}
           robots="noindex, nofollow"
         />
@@ -73,23 +72,23 @@ export default function ProductDetailPage() {
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center justify-center px-4 py-24 text-center">
         <Seo
-          title="Product Not Found"
-          description="This product may be unavailable or no longer listed."
+          title={t('product.not_found_title')}
+          description={t('product.not_found_description')}
           canonical={slugUuid ? `/products/${slugUuid}` : undefined}
           robots="noindex, nofollow"
         />
         <Package className="h-12 w-12 text-gray-300 dark:text-gray-600" />
         <h1 className="mt-4 font-semibold text-gray-900 text-lg dark:text-white">
-          Product not found
+          {t('product.not_found_heading')}
         </h1>
         <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-          This product may be unavailable or no longer listed.
+          {t('product.not_found_description')}
         </p>
         <Link
           to={paths.products}
           className="mt-6 font-medium text-blue-600 text-sm hover:underline dark:text-blue-400"
         >
-          Browse products
+          {t('product.browse')}
         </Link>
       </div>
     )
@@ -105,6 +104,11 @@ export default function ProductDetailPage() {
     : product.image_original_url
       ? [product.image_original_url]
       : gallery
+  const galleryLadders = product.gallery_sizes ?? []
+  const selectedLadder = galleryLadders[selectedImage] ?? product.image_urls ?? null
+  const selectedSrcset = buildSrcset(selectedLadder, PRODUCT_IMAGE_LADDER)
+  const selectedImageSrc =
+    preferUrl(selectedLadder, ['large', 'medium', 'original']) ?? gallery[selectedImage]
   const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId) ?? null
 
   const basePrice = Number(selectedVariant?.price ?? product.price)
@@ -116,11 +120,11 @@ export default function ProductDetailPage() {
   const stock = product.stock
   const stockLabel = stock?.track_inventory
     ? stock.available > 0
-      ? 'In stock'
-      : 'Out of stock'
-    : 'Available on request'
+      ? t('product.in_stock')
+      : t('product.out_of_stock')
+    : t('product.available_on_request')
 
-  const quoteSubject = encodeURIComponent(`Quote request: ${product.name}`)
+  const quoteSubject = encodeURIComponent(t('product.quote_subject', { name: product.name }))
 
   const isInStock = !stock?.track_inventory || stock.available > 0
   const metaDescription = (product.summary || product.description || '')
@@ -139,7 +143,7 @@ export default function ProductDetailPage() {
     offers: {
       '@type': 'Offer',
       url: siteUrl(`/products/${product.route_key}`),
-      priceCurrency: selectedVariant?.currency ?? product.currency ?? 'USD',
+      priceCurrency: selectedVariant?.currency ?? product.currency ?? 'PKR',
       price: displayPrice,
       availability: isInStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       itemCondition: 'https://schema.org/NewCondition',
@@ -155,10 +159,10 @@ export default function ProductDetailPage() {
   }
 
   return (
-    <div className="shell mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="shell mx-auto px-2 py-8">
       <Seo
         title={product.name}
-        description={metaDescription || `Buy ${product.name} online at HTAShop.`}
+        description={metaDescription || t('product.buy_online', { name: product.name })}
         keywords={[
           product.name,
           ...(brand ? [brand] : []),
@@ -174,26 +178,26 @@ export default function ProductDetailPage() {
       {/* Breadcrumb */}
       <nav
         className="mb-6 flex flex-wrap items-center gap-1 text-gray-500 text-sm dark:text-gray-400"
-        aria-label="Breadcrumb"
+        aria-label={t('breadcrumb.label')}
       >
         <Link to={paths.home} className="hover:text-gray-900 dark:hover:text-white">
-          Home
+          {t('breadcrumb.home')}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
         <Link to={paths.products} className="hover:text-gray-900 dark:hover:text-white">
-          Products
+          {t('breadcrumb.products')}
         </Link>
         {category && (
           <>
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
             <span className="text-gray-700 dark:text-gray-300">{category.name}</span>
           </>
         )}
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-12">
+      <div className="grid gap-4 lg:grid-cols-12">
         {/* Gallery */}
-        <div className="col-span-5 flex gap-4">
+        <div className="flex lg:col-span-6">
           {gallery.length > 1 && (
             <div className="flex shrink-0 flex-col gap-2">
               {gallery.map((url, index) => (
@@ -207,7 +211,13 @@ export default function ProductDetailPage() {
                       : 'border-gray-200 dark:border-gray-800'
                   }`}
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={preferUrl(galleryLadders[index], ['small', 'medium']) ?? url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
               ))}
             </div>
@@ -217,11 +227,13 @@ export default function ProductDetailPage() {
             type="button"
             onClick={() => setImageModalOpen(true)}
             className="group relative min-w-0 max-w-150 flex-1 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900"
-            aria-label="View larger image"
+            aria-label={t('product.view_larger')}
           >
             {gallery[selectedImage] ? (
               <img
-                src={gallery[selectedImage]}
+                src={selectedImageSrc}
+                srcSet={selectedSrcset}
+                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 48vw, 600px"
                 alt={product.name}
                 className="aspect-square max-h-150 w-full max-w-150 object-cover"
               />
@@ -240,7 +252,7 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Info */}
-        <div className="col-span-4">
+        <div className="lg:col-span-3">
           {brand && (
             <p className="font-semibold text-blue-600 text-sm uppercase tracking-wide dark:text-blue-400">
               {brand}
@@ -266,7 +278,9 @@ export default function ProductDetailPage() {
           {/* Variants */}
           {product.variants?.length > 0 && (
             <div className="mt-6">
-              <h3 className="mb-2 font-semibold text-gray-900 text-sm dark:text-white">Variants</h3>
+              <h3 className="mb-2 font-semibold text-gray-900 text-sm dark:text-white">
+                {t('product.variants')}
+              </h3>
               <div className="flex flex-wrap gap-2">
                 {product.variants.map((variant) => {
                   const config = Object.entries(variant.configuration ?? {})
@@ -302,7 +316,7 @@ export default function ProductDetailPage() {
           {product.highlights && product.highlights.length > 0 && (
             <div className="mt-6">
               <h3 className="mb-2 font-semibold text-gray-900 text-sm dark:text-white">
-                About this item
+                {t('product.about')}
               </h3>
               <ul className="space-y-2">
                 {product.highlights.map((highlight) => (
@@ -328,7 +342,7 @@ export default function ProductDetailPage() {
           {product.features && product.features.length > 0 && (
             <div className="mt-6">
               <h3 className="mb-2 font-semibold text-gray-900 text-sm dark:text-white">
-                Key features
+                {t('product.key_features')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {product.features.map((feature) => (
@@ -346,8 +360,8 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Buy box / shipment */}
-        <div className="col-span-3 flex gap-4">
-          <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
+        <div className="lg:col-span-3">
+          <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
             <div className="flex items-baseline gap-3">
               <span className="font-bold text-2xl text-gray-900 dark:text-white">
                 {formatMoney(displayPrice, selectedVariant?.currency ?? product.currency)}
@@ -372,7 +386,7 @@ export default function ProductDetailPage() {
               </span>
               {stock?.track_inventory && stock.available > 0 && (
                 <span className="text-gray-500 text-sm dark:text-gray-400">
-                  {stock.available} units available
+                  {t('product.units_available', { count: stock.available })}
                 </span>
               )}
             </div>
@@ -381,9 +395,11 @@ export default function ProductDetailPage() {
               <div className="flex items-start gap-2">
                 <Truck className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                 <div className="text-gray-600 text-sm dark:text-gray-300">
-                  <p className="font-medium text-gray-900 dark:text-white">Shipping</p>
-                  <p>Ships from HTAShop</p>
-                  <p>Delivery options calculated at checkout</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {t('product.shipping')}
+                  </p>
+                  <p>{t('product.ships_from')}</p>
+                  <p>{t('product.delivery_note')}</p>
                 </div>
               </div>
             </div>
@@ -393,7 +409,7 @@ export default function ProductDetailPage() {
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 className="flex h-full w-10 items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                aria-label="Decrease quantity"
+                aria-label={t('product.decrease_qty')}
               >
                 <Minus className="h-4 w-4" />
               </button>
@@ -404,7 +420,7 @@ export default function ProductDetailPage() {
                 type="button"
                 onClick={() => setQuantity((q) => q + 1)}
                 className="flex h-full w-10 items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                aria-label="Increase quantity"
+                aria-label={t('product.increase_qty')}
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -423,22 +439,22 @@ export default function ProductDetailPage() {
               className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
             >
               <ShoppingCart className="h-4 w-4" />
-              {cartLoading ? 'Adding…' : 'Add to cart'}
+              {cartLoading ? t('product.adding') : t('product.add_to_cart')}
             </button>
 
             <a
-              href={`mailto:sales@htashop.com?subject=${quoteSubject}`}
+              href={`mailto:${COMPANY.salesEmail}?subject=${quoteSubject}`}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               <Truck className="h-4 w-4" />
-              Request Quote
+              {t('product.request_quote')}
             </a>
             <a
-              href={`mailto:sales@htashop.com?subject=${quoteSubject}`}
+              href={`mailto:${COMPANY.email}?subject=${quoteSubject}`}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               <MessageCircle className="h-4 w-4" />
-              Ask a question
+              {t('product.ask_question')}
             </a>
           </div>
         </div>
@@ -447,21 +463,25 @@ export default function ProductDetailPage() {
       {/* Details */}
       <div className="mt-12 grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h2 className="font-bold text-gray-900 text-xl dark:text-white">Description</h2>
+          <h2 className="font-bold text-gray-900 text-xl dark:text-white">
+            {t('product.description')}
+          </h2>
           <div className="mt-3 space-y-3 text-gray-600 dark:text-gray-300">
             {product.description ? (
               product.description
                 .split(/\n+/)
                 .map((paragraph) => <p key={paragraph}>{paragraph}</p>)
             ) : (
-              <p className="text-gray-400">No description provided.</p>
+              <p className="text-gray-400">{t('product.no_description')}</p>
             )}
           </div>
         </div>
 
         {product.specs && product.specs.length > 0 && (
           <div>
-            <h2 className="font-bold text-gray-900 text-xl dark:text-white">Specifications</h2>
+            <h2 className="font-bold text-gray-900 text-xl dark:text-white">
+              {t('product.specifications')}
+            </h2>
             <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
               {product.specs.map((spec, index) => (
                 <div

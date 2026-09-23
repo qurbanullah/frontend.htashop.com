@@ -1,6 +1,8 @@
 import { X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import { Button } from './button'
 
 export interface ModalProps {
@@ -70,12 +72,25 @@ export function Modal({
   exitDuration = 200,
   initialFocusRef,
 }: ModalProps) {
+  const { t } = useTranslation()
   const modalRef = useRef<HTMLDivElement>(null)
   const previousActiveElement = useRef<HTMLElement | null>(null)
+  // Whether this instance ever actually opened — see the scroll-lock effect below.
+  const wasOpen = useRef(false)
   // Keep onClose in a ref so the escape handler always has the latest version
   // without needing it as a useEffect dependency (which would steal focus on re-renders)
   const onCloseRef = useRef(onClose)
-  onCloseRef.current = onClose
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  const releaseBodyScrollLock = useCallback(() => {
+    const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
+    document.body.style.position = ''
+    document.body.style.top = ''
+    document.body.style.width = ''
+    window.scrollTo(0, scrollY)
+  }, [])
 
   // Animation states
   const [isVisible, setIsVisible] = useState(false)
@@ -102,10 +117,14 @@ export function Modal({
     }
   }, [isOpen, exitDuration, isVisible])
 
-  // Handle escape key press and body scroll
+  // Handle escape key press and body scroll lock.
   // NOTE: onClose is intentionally accessed via ref — do NOT add it to deps.
   // Adding onClose (a non-memoized function) would cause this effect to re-run on every
   // parent render, which calls modalRef.current?.focus() and steals focus from textareas.
+  //
+  // `wasOpen` guards the unlock path: a Modal that is rendered but never opened used to
+  // take the else branch on mount, wiping document.body's inline styles and calling
+  // window.scrollTo(0, 0) — scrolling the page to the top and releasing another modal's lock.
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isAnimating) {
@@ -115,6 +134,7 @@ export function Modal({
 
     if (isVisible) {
       document.addEventListener('keydown', handleEscape)
+      wasOpen.current = true
       const scrollY = window.scrollY
       const bodyWidth = document.body.offsetWidth
       document.body.style.position = 'fixed'
@@ -122,25 +142,30 @@ export function Modal({
       document.body.style.width = `${bodyWidth}px`
       // Store currently focused element
       previousActiveElement.current = document.activeElement as HTMLElement
-    } else {
-      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      window.scrollTo(0, scrollY)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+
+    if (wasOpen.current) {
+      wasOpen.current = false
+      releaseBodyScrollLock()
       // Restore focus to previously focused element
       previousActiveElement.current?.focus()
     }
+  }, [isVisible, isAnimating, releaseBodyScrollLock])
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-      const scrollY = Math.abs(parseInt(document.body.style.top || '0', 10))
-      document.body.style.position = ''
-      document.body.style.top = ''
-      document.body.style.width = ''
-      window.scrollTo(0, scrollY)
-    }
-  }, [isVisible, isAnimating]) // onClose excluded intentionally — accessed via ref above
+  // Safety net: release the lock if the modal unmounts while still open.
+  useEffect(
+    () => () => {
+      if (wasOpen.current) {
+        wasOpen.current = false
+        releaseBodyScrollLock()
+      }
+    },
+    [releaseBodyScrollLock]
+  )
+
+  // Keep Tab inside the dialog while it is open.
+  useFocusTrap(modalRef, isVisible)
 
   // Focus once when the modal finishes opening (isAnimating transitions false → true).
   // Kept separate so it never re-fires while the modal is already open and the user is typing.
@@ -220,7 +245,7 @@ export function Modal({
                   type="button"
                   onClick={onClose}
                   className="flex-shrink-0 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                  aria-label="Close modal"
+                  aria-label={t('common.close_modal')}
                 >
                   <X className="h-5 w-5" />
                 </button>

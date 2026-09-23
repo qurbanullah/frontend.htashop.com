@@ -1,15 +1,16 @@
 import { Cookie, LayoutDashboard, MapPin, Package, ShieldCheck, User } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { paths } from '@/routes/paths'
 
 const NAV_ITEMS = [
-  { to: paths.account, label: 'Overview', icon: LayoutDashboard, exact: true },
-  { to: paths.accountOrders, label: 'Orders', icon: Package },
-  { to: paths.accountAddresses, label: 'Addresses', icon: MapPin },
-  { to: paths.accountProfile, label: 'Profile', icon: User },
-  { to: paths.accountSecurity, label: 'Security', icon: ShieldCheck },
-  { to: paths.accountPrivacy, label: 'Privacy', icon: Cookie },
+  { to: paths.account, labelKey: 'account.nav_overview', icon: LayoutDashboard, exact: true },
+  { to: paths.accountOrders, labelKey: 'account.nav_orders', icon: Package },
+  { to: paths.accountAddresses, labelKey: 'account.nav_addresses', icon: MapPin },
+  { to: paths.accountProfile, labelKey: 'account.nav_profile', icon: User },
+  { to: paths.accountSecurity, labelKey: 'account.nav_security', icon: ShieldCheck },
+  { to: paths.accountPrivacy, labelKey: 'account.nav_privacy', icon: Cookie },
 ]
 
 function isActive(pathname: string, item: { to: string; exact?: boolean }): boolean {
@@ -23,6 +24,7 @@ function isActive(pathname: string, item: { to: string; exact?: boolean }): bool
  */
 export function AccountSidebar() {
   const { pathname } = useLocation()
+  const { t } = useTranslation()
 
   return (
     <>
@@ -30,7 +32,7 @@ export function AccountSidebar() {
       <aside className="hidden w-56 shrink-0 lg:block">
         <nav className="sticky top-30 space-y-1 rounded-2xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
           <p className="px-3 pt-1 pb-2 font-semibold text-gray-400 text-xs uppercase tracking-wider">
-            My Account
+            {t('account.sidebar_title')}
           </p>
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item)
@@ -46,7 +48,7 @@ export function AccountSidebar() {
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             )
           })}
@@ -69,7 +71,7 @@ export function AccountSidebar() {
               )}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           )
         })}

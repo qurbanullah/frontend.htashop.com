@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronDown, MapPin, Search } from 'lucide-react'
 import { useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { citiesApi } from '@/api/cities'
 import { countriesApi } from '@/api/countries'
 import { Input } from '@/components/ui/input'
@@ -37,6 +38,7 @@ interface Props {
 }
 
 export function AddressFields({ value, onChange, title }: Props) {
+  const { t } = useTranslation()
   const [countryOpen, setCountryOpen] = useState(false)
   const [countrySearch, setCountrySearch] = useState('')
   const countryRef = useRef<HTMLDivElement>(null)
@@ -112,7 +114,7 @@ export function AddressFields({ value, onChange, title }: Props) {
         {/* Country */}
         <div className="space-y-1.5">
           <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            Country <span className="text-red-500"> *</span>
+            {t('address_fields.country')} <span className="text-red-500"> *</span>
           </Label>
           <div ref={countryRef} className="relative">
             <button
@@ -126,7 +128,7 @@ export function AddressFields({ value, onChange, title }: Props) {
                   {selectedCountry.name}
                 </span>
               ) : (
-                <span className="text-gray-400">Select country...</span>
+                <span className="text-gray-400">{t('address_fields.select_country')}</span>
               )}
               <ChevronDown className="h-4 w-4 text-gray-400" />
             </button>
@@ -139,7 +141,7 @@ export function AddressFields({ value, onChange, title }: Props) {
                     <Input
                       value={countrySearch}
                       onChange={(e) => setCountrySearch(e.target.value)}
-                      placeholder="Search countries..."
+                      placeholder={t('address_fields.search_countries')}
                       className="h-8 pl-8 text-xs"
                       autoFocus
                     />
@@ -148,7 +150,7 @@ export function AddressFields({ value, onChange, title }: Props) {
                 <div className="max-h-56 overflow-y-auto">
                   {filteredCountries.length === 0 ? (
                     <p className="px-3 py-4 text-center text-gray-400 text-xs">
-                      No countries found
+                      {t('address_fields.no_countries')}
                     </p>
                   ) : (
                     filteredCountries.map((country) => {
@@ -190,7 +192,9 @@ export function AddressFields({ value, onChange, title }: Props) {
 
         {/* City */}
         <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">City</Label>
+          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+            {t('address_fields.city')}
+          </Label>
           {countryId && cities.length > 0 ? (
             <div className="relative">
               <select
@@ -206,7 +210,7 @@ export function AddressFields({ value, onChange, title }: Props) {
                 }}
                 className="h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 pr-9 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
               >
-                <option value="">Select city...</option>
+                <option value="">{t('address_fields.select_city')}</option>
                 {cities.map((city) => (
                   <option key={city.id} value={city.id}>
                     {city.name}

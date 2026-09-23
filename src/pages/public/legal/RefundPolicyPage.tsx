@@ -1,4 +1,6 @@
 import { LegalLayout } from '@/components/legal/LegalLayout'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
+import { paths } from '@/routes/paths'
 
 const SECTIONS = [
   {
@@ -23,7 +25,7 @@ const SECTIONS = [
   },
   {
     heading: '4. Complaints',
-    body: 'For any complaint or query relating to our website, products, or service, contact us at support@htashop.com or +92 300 0000000. We will use our best endeavours to respond to your complaint or query within 2 business days of receipt.',
+    body: `For any complaint or query relating to our website, products, or service, contact us at ${COMPANY.email} or ${COMPANY.phoneDisplay}. We will use our best endeavours to respond to your complaint or query within 2 business days of receipt.`,
     bullets: [
       'In case of a complaint for a defective or incorrect product, you must share proper and complete evidence of receiving an incorrect or defective product — such as receipts, pictures, and videos — so we can resolve the issue quickly.',
     ],
@@ -58,7 +60,7 @@ const SECTIONS = [
     heading: '9. Refund Processing',
     bullets: [
       'Once we receive and inspect the returned goods and confirm they are in a saleable condition, we will credit your refund within 7–14 business days of receipt of the goods.',
-      'Online payments (Safepay, JazzCash, Easypaisa, Upaisa) — refunds are issued to the original payment method; your bank or payment provider may take additional time to post the credit.',
+      'Online payments (Safepay, JazzCash, Easypaisa, UPaisa) — refunds are issued to the original payment method; your bank or payment provider may take additional time to post the credit.',
       'Cash on Delivery (COD) — refunds are processed by bank transfer to the account details you provide.',
       'If you receive a refund, the cost of return shipping will be deducted from your refund.',
       'Customised, perishable, or hygiene-sensitive products (e.g., opened consumables) may not be returnable unless defective, as stated on the product page.',
@@ -74,7 +76,7 @@ const SECTIONS = [
   },
   {
     heading: '12. Contact',
-    body: 'For shipping, cancellation, return, or refund support, contact us at support@htashop.com or +92 300 0000000.',
+    body: `For shipping, cancellation, return, or refund support, contact us at ${COMPANY.email} or ${COMPANY.phoneDisplay}, or write to ${COMPANY.name}, ${COMPANY_ADDRESS_LINE}.`,
   },
 ]
 
@@ -83,6 +85,7 @@ export default function RefundPolicyPage() {
     <LegalLayout
       title="Shipping, Cancellations & Return/Refund Policy"
       description="How delivery, cancellations, returns, exchanges, and refunds work on HTAShop."
+      canonical={paths.policiesRefund}
       updated="August 22, 2026"
       sections={SECTIONS}
     />

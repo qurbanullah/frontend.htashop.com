@@ -3,6 +3,7 @@ import { Cookie, History, Loader2, ShieldCheck } from 'lucide-react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type GdprConsentDto, gdprApi } from '@/api/gdpr'
+import { QueryErrorState } from '@/components/ui/query-error'
 import { cn } from '@/lib/utils'
 import { useConsentStore } from '@/stores/consent'
 
@@ -64,7 +65,7 @@ export default function PrivacyPage() {
   const openSettings = useConsentStore((s) => s.openSettings)
   const isSettingsOpen = useConsentStore((s) => s.isSettingsOpen)
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['gdpr-consent-history'],
     queryFn: () => gdprApi.history(),
     staleTime: 60_000,
@@ -142,7 +143,12 @@ export default function PrivacyPage() {
           </h2>
         </div>
 
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState
+            title="Couldn't load your consent history"
+            onRetry={() => void refetch()}
+          />
+        ) : isLoading ? (
           <div className="mt-6 flex items-center justify-center py-8 text-gray-400">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckCircle2, Loader2, MessageSquare, Star, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type Review, reviewsApi } from '@/api/reviews'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,7 @@ function WriteReviewModal({
   routeKey: string
   onSubmitted: () => void
 }) {
+  const { t } = useTranslation()
   const { success: showSuccess, error: showError } = useToast()
   const { isAuthenticated } = useAuth()
   const [rating, setRating] = useState(5)
@@ -68,7 +70,7 @@ function WriteReviewModal({
 
   const submit = async () => {
     if (!body.trim()) {
-      showError('Please write a review.')
+      showError(t('reviews.error_empty'))
       return
     }
 
@@ -80,7 +82,7 @@ function WriteReviewModal({
         body: body.trim(),
         is_recommended: isRecommended,
       })
-      showSuccess('Review submitted')
+      showSuccess(t('reviews.submitted'))
       setRating(5)
       setTitle('')
       setBody('')
@@ -88,55 +90,53 @@ function WriteReviewModal({
       onClose()
       onSubmitted()
     } catch (error) {
-      showError(isApiError(error) ? error.message : 'Failed to submit review')
+      showError(isApiError(error) ? error.message : t('reviews.submit_failed'))
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Write a review" maxWidth="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('reviews.write')} maxWidth="lg">
       {!isAuthenticated ? (
         <div className="py-4 text-center">
-          <p className="text-gray-500 text-sm dark:text-gray-400">
-            Please sign in to write a review.
-          </p>
+          <p className="text-gray-500 text-sm dark:text-gray-400">{t('reviews.sign_in_prompt')}</p>
           <Link
             to={paths.login}
             className="mt-3 inline-block font-medium text-blue-600 text-sm hover:underline dark:text-blue-400"
           >
-            Sign in
+            {t('reviews.sign_in')}
           </Link>
         </div>
       ) : (
         <div className="space-y-4">
           <div>
             <span className="mb-1.5 block font-medium text-gray-700 text-sm dark:text-gray-300">
-              Rating
+              {t('reviews.rating')}
             </span>
             <Stars rating={rating} onSelect={setRating} size={24} />
           </div>
 
           <div>
             <span className="mb-1.5 block font-medium text-gray-700 text-sm dark:text-gray-300">
-              Title (optional)
+              {t('reviews.title_optional')}
             </span>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Summarize your experience"
+              placeholder={t('reviews.title_placeholder')}
               className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
 
           <div>
             <span className="mb-1.5 block font-medium text-gray-700 text-sm dark:text-gray-300">
-              Review
+              {t('reviews.review')}
             </span>
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="What did you like or dislike?"
+              placeholder={t('reviews.body_placeholder')}
               rows={4}
               className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
@@ -149,16 +149,16 @@ function WriteReviewModal({
               onChange={(e) => setIsRecommended(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            I recommend this product
+            {t('reviews.recommend')}
           </label>
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              {t('reviews.cancel')}
             </Button>
             <Button onClick={submit} disabled={submitting}>
-              {submitting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-              Submit
+              {submitting ? <Loader2 className="me-1.5 h-4 w-4 animate-spin" /> : null}
+              {t('reviews.submit')}
             </Button>
           </div>
         </div>
@@ -168,6 +168,7 @@ function WriteReviewModal({
 }
 
 export function ProductReviews({ routeKey }: { routeKey: string }) {
+  const { t } = useTranslation()
   const { error: showError } = useToast()
   const { isAuthenticated } = useAuth()
   const queryClient = useQueryClient()
@@ -192,9 +193,9 @@ export function ProductReviews({ routeKey }: { routeKey: string }) {
     },
     onError: (error) => {
       if (!isAuthenticated || (isApiError(error) && error.status === 401)) {
-        showError('Please sign in to vote')
+        showError(t('reviews.vote_sign_in'))
       } else {
-        showError(isApiError(error) ? error.message : 'Failed to record vote')
+        showError(isApiError(error) ? error.message : t('reviews.vote_failed'))
       }
     },
   })
@@ -212,8 +213,8 @@ export function ProductReviews({ routeKey }: { routeKey: string }) {
   return (
     <section className="mt-12">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-gray-900 text-xl dark:text-white">Customer reviews</h2>
-        <Button onClick={() => setWriteOpen(true)}>Write a review</Button>
+        <h2 className="font-bold text-gray-900 text-xl dark:text-white">{t('reviews.title')}</h2>
+        <Button onClick={() => setWriteOpen(true)}>{t('reviews.write')}</Button>
       </div>
 
       <div className="mt-5 grid gap-6 lg:grid-cols-3">
@@ -229,7 +230,7 @@ export function ProductReviews({ routeKey }: { routeKey: string }) {
             <Stars rating={average} size={18} />
           </div>
           <p className="mt-2 text-gray-500 text-sm dark:text-gray-400">
-            {reviewCount} review{reviewCount === 1 ? '' : 's'}
+            {t('reviews.count', { count: reviewCount })}
           </p>
 
           <div className="mt-4 space-y-1.5">
@@ -265,7 +266,7 @@ export function ProductReviews({ routeKey }: { routeKey: string }) {
           ) : list?.data.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 border-dashed py-16 text-center dark:border-gray-800">
               <MessageSquare className="h-8 w-8 text-gray-300 dark:text-gray-600" />
-              <p className="mt-3 text-gray-500 text-sm dark:text-gray-400">No reviews yet.</p>
+              <p className="mt-3 text-gray-500 text-sm dark:text-gray-400">{t('reviews.empty')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -284,7 +285,7 @@ export function ProductReviews({ routeKey }: { routeKey: string }) {
                   onClick={() => setPage((p) => p + 1)}
                   className="w-full rounded-xl border border-gray-300 py-2.5 font-medium text-gray-700 text-sm hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Load more reviews
+                  {t('reviews.load_more')}
                 </button>
               )}
             </div>
@@ -311,19 +312,21 @@ function ReviewCard({
   onVote: (helpful: boolean) => void
   voting: boolean
 }) {
+  const { t, i18n } = useTranslation()
+
   return (
     <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Stars rating={review.rating} size={15} />
           <p className="mt-1.5 font-semibold text-gray-900 dark:text-white">
-            {review.title || 'Review'}
+            {review.title || t('reviews.fallback_title')}
           </p>
         </div>
         {review.is_verified_purchase && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-700 text-xs dark:bg-green-900/30 dark:text-green-400">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Verified Purchase
+            {t('reviews.verified')}
           </span>
         )}
       </div>
@@ -333,10 +336,10 @@ function ReviewCard({
       <div className="mt-3 flex items-center justify-between">
         <div className="text-gray-500 text-xs dark:text-gray-400">
           <span className="font-medium text-gray-700 dark:text-gray-300">
-            {review.user?.name ?? 'Anonymous'}
+            {review.user?.name ?? t('reviews.anonymous')}
           </span>
           {' · '}
-          {new Date(review.created_at).toLocaleDateString()}
+          {new Date(review.created_at).toLocaleDateString(i18n.language)}
         </div>
 
         <div className="flex items-center gap-2">

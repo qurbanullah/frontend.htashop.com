@@ -1,14 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, CheckCircle, Eye, EyeOff, KeyRound, Lock, ShieldCheck } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   type FieldErrors,
   type UseFormHandleSubmit,
   type UseFormRegister,
   useForm,
 } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
+import TurnstileWidget from '@/components/auth/TurnstileWidget'
+import { Seo } from '@/components/seo/Seo'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,17 +19,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authApi } from '@/lib/api'
 
-const resetPasswordSchema = z
-  .object({
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    password_confirmation: z.string(),
-  })
-  .refine((data) => data.password === data.password_confirmation, {
-    message: "Passwords don't match",
-    path: ['password_confirmation'],
-  })
+type Translate = (key: string) => string
 
-type ResetPasswordForm = z.infer<typeof resetPasswordSchema>
+function createResetPasswordSchema(t: Translate) {
+  return z
+    .object({
+      password: z.string().min(8, t('validation.password_min')),
+      password_confirmation: z.string(),
+    })
+    .refine((data) => data.password === data.password_confirmation, {
+      message: t('validation.password_mismatch'),
+      path: ['password_confirmation'],
+    })
+}
+
+type ResetPasswordForm = z.infer<ReturnType<typeof createResetPasswordSchema>>
 
 interface ResetPasswordFormViewProps {
   register: UseFormRegister<ResetPasswordForm>
@@ -41,6 +48,7 @@ interface ResetPasswordFormViewProps {
   showConfirmPassword: boolean
   setShowPassword: (v: boolean) => void
   setShowConfirmPassword: (v: boolean) => void
+  setTurnstileToken: (token: string | null) => void
 }
 
 function ResetPasswordFormView({
@@ -56,7 +64,10 @@ function ResetPasswordFormView({
   showConfirmPassword,
   setShowPassword,
   setShowConfirmPassword,
+  setTurnstileToken,
 }: ResetPasswordFormViewProps) {
+  const { t } = useTranslation('auth')
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Error Message */}
@@ -83,7 +94,7 @@ function ResetPasswordFormView({
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
           <p className="text-slate-600 text-sm dark:text-slate-400">
             <span className="font-medium text-slate-900 dark:text-slate-200">
-              Resetting password for:
+              {t('reset_password.resetting_for')}
             </span>
             <br />
             <span className="font-semibold text-blue-600 dark:text-blue-400">{email}</span>
@@ -98,21 +109,21 @@ function ResetPasswordFormView({
           className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200"
         >
           <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          New Password
+          {t('reset_password.new_password')}
         </Label>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? 'text' : 'password'}
-            placeholder="Enter your new password"
+            placeholder={t('reset_password.new_password_placeholder')}
             {...register('password')}
-            className={`h-11 border-2 pr-12 pl-10 text-base transition-all ${
+            className={`h-11 border-2 ps-10 pe-12 text-base transition-all ${
               errors.password
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
             }`}
           />
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
             <svg
               className="h-5 w-5 text-slate-400 dark:text-slate-500"
               fill="none"
@@ -130,7 +141,7 @@ function ResetPasswordFormView({
           </div>
           <button
             type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-3 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+            className="absolute inset-y-0 end-0 flex items-center pe-3 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? (
@@ -141,7 +152,10 @@ function ResetPasswordFormView({
           </button>
         </div>
         {errors.password && (
-          <p className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400">
+          <p
+            role="alert"
+            className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400"
+          >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path
                 fillRule="evenodd"
@@ -161,21 +175,21 @@ function ResetPasswordFormView({
           className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200"
         >
           <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          Confirm New Password
+          {t('reset_password.confirm_password')}
         </Label>
         <div className="relative">
           <Input
             id="password_confirmation"
             type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="Confirm your new password"
+            placeholder={t('reset_password.confirm_placeholder')}
             {...register('password_confirmation')}
-            className={`h-11 border-2 pr-12 pl-10 text-base transition-all ${
+            className={`h-11 border-2 ps-10 pe-12 text-base transition-all ${
               errors.password_confirmation
                 ? 'border-red-500 focus:ring-red-500'
                 : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
             }`}
           />
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+          <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
             <svg
               className="h-5 w-5 text-slate-400 dark:text-slate-500"
               fill="none"
@@ -193,7 +207,7 @@ function ResetPasswordFormView({
           </div>
           <button
             type="button"
-            className="absolute inset-y-0 right-0 flex items-center pr-3 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
+            className="absolute inset-y-0 end-0 flex items-center pe-3 transition-colors hover:text-blue-600 dark:hover:text-blue-400"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
           >
             {showConfirmPassword ? (
@@ -204,7 +218,10 @@ function ResetPasswordFormView({
           </button>
         </div>
         {errors.password_confirmation && (
-          <p className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400">
+          <p
+            role="alert"
+            className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400"
+          >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path
                 fillRule="evenodd"
@@ -220,7 +237,7 @@ function ResetPasswordFormView({
       {/* Password Requirements */}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2 font-medium text-slate-900 text-sm dark:text-slate-200">
-          Password Requirements:
+          {t('reset_password.requirements_title')}
         </p>
         <ul className="space-y-1 text-slate-600 text-xs dark:text-slate-400">
           <li className="flex items-center gap-2">
@@ -236,7 +253,7 @@ function ResetPasswordFormView({
                 clipRule="evenodd"
               />
             </svg>
-            At least 8 characters long
+            {t('reset_password.requirement_length')}
           </li>
           <li className="flex items-center gap-2">
             <svg
@@ -251,9 +268,14 @@ function ResetPasswordFormView({
                 clipRule="evenodd"
               />
             </svg>
-            Both passwords must match
+            {t('reset_password.requirement_match')}
           </li>
         </ul>
+      </div>
+
+      {/* Turnstile */}
+      <div className="flex justify-center">
+        <TurnstileWidget onVerify={setTurnstileToken} />
       </div>
 
       {/* Submit Button */}
@@ -264,13 +286,13 @@ function ResetPasswordFormView({
       >
         {loading ? (
           <div className="flex items-center justify-center">
-            <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-            Resetting Password...
+            <div className="me-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            {t('reset_password.submitting')}
           </div>
         ) : (
           <div className="flex items-center justify-center">
-            <KeyRound className="mr-2 h-5 w-5 transition-transform group-hover:rotate-12" />
-            Reset Password
+            <KeyRound className="me-2 h-5 w-5 transition-transform group-hover:rotate-12" />
+            {t('reset_password.submit')}
           </div>
         )}
       </Button>
@@ -278,12 +300,12 @@ function ResetPasswordFormView({
       {/* Additional Links */}
       <div className="border-slate-200 border-t-2 pt-4 text-center dark:border-slate-700">
         <p className="text-slate-600 text-sm dark:text-slate-400">
-          Remember your password?{' '}
+          {t('reset_password.remember')}{' '}
           <Link
             to="/login"
             className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
-            Sign in here
+            {t('reset_password.sign_in_here')}
           </Link>
         </p>
       </div>
@@ -292,15 +314,19 @@ function ResetPasswordFormView({
 }
 
 function ResetSuccessView() {
+  const { t } = useTranslation('auth')
+
   return (
     <div className="space-y-5">
       {/* Success Message */}
       <div className="flex items-start gap-3 rounded-lg border-2 border-emerald-200 bg-emerald-50 px-4 py-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <CheckCircle className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
         <div className="flex-1">
-          <p className="mb-1 font-semibold text-emerald-900 dark:text-emerald-100">All Set!</p>
+          <p className="mb-1 font-semibold text-emerald-900 dark:text-emerald-100">
+            {t('reset_password.success_title')}
+          </p>
           <p className="text-emerald-800 text-sm dark:text-emerald-200">
-            Your password has been reset successfully. You can now sign in with your new password.
+            {t('reset_password.success_body')}
           </p>
         </div>
       </div>
@@ -308,9 +334,9 @@ function ResetSuccessView() {
       {/* Auto Redirect Info */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
         <p className="text-center text-blue-900 text-sm dark:text-blue-100">
-          <span className="font-medium">Redirecting to login...</span>
+          <span className="font-medium">{t('reset_password.redirecting')}</span>
           <br />
-          You will be automatically redirected in a few seconds.
+          {t('reset_password.redirect_body')}
         </p>
       </div>
 
@@ -320,7 +346,7 @@ function ResetSuccessView() {
         className="group flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700"
       >
         <svg
-          className="h-5 w-5 transition-transform group-hover:translate-x-1"
+          className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -333,7 +359,7 @@ function ResetSuccessView() {
             d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
           />
         </svg>
-        Go to Login Now
+        {t('reset_password.go_login_now')}
       </Link>
     </div>
   )
@@ -341,15 +367,19 @@ function ResetSuccessView() {
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const { t } = useTranslation('auth')
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
   const token = searchParams.get('token')
   const email = searchParams.get('email')
+
+  const resetPasswordSchema = useMemo(() => createResetPasswordSchema(t), [t])
 
   const {
     register,
@@ -361,13 +391,13 @@ export default function ResetPassword() {
 
   useEffect(() => {
     if (!token || !email) {
-      setError('Invalid or missing reset link. Please request a new password reset.')
+      setError(t('reset_password.error_invalid_link'))
     }
-  }, [token, email])
+  }, [token, email, t])
 
   const onSubmit = async (data: ResetPasswordForm) => {
     if (!token || !email) {
-      setError('Invalid reset link')
+      setError(t('reset_password.error_invalid_link_short'))
       return
     }
 
@@ -380,6 +410,7 @@ export default function ResetPassword() {
         email,
         password: data.password,
         password_confirmation: data.password_confirmation,
+        turnstileToken: turnstileToken,
       })
 
       setSuccess(true)
@@ -389,7 +420,7 @@ export default function ResetPassword() {
         navigate('/login')
       }, 3000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to reset password. Please try again.')
+      setError(err instanceof Error ? err.message : t('reset_password.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -397,6 +428,7 @@ export default function ResetPassword() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+      <Seo title={t('seo.reset_password')} noindex />
       <div className="w-full max-w-xl">
         {/* Back Link */}
         {!success && (
@@ -404,17 +436,15 @@ export default function ResetPassword() {
             to="/login"
             className="mb-6 inline-flex items-center gap-2 font-medium text-slate-600 text-sm transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Login
+            <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+            {t('common.back_to_login')}
           </Link>
         )}
 
         {/* Header */}
         <div className="mb-6 text-center">
           <Link to="/" className="inline-flex items-center justify-center gap-3">
-            <div className="dark:hidden">
-              <Logo width={120} />
-            </div>
+            <Logo width={120} />
           </Link>
         </div>
 
@@ -428,12 +458,10 @@ export default function ResetPassword() {
               )}
             </div>
             <CardTitle className="text-center font-bold text-2xl text-gray-900 dark:text-white">
-              {success ? 'Password Reset Successful!' : 'Create New Password'}
+              {success ? t('reset_password.title_success') : t('reset_password.title_form')}
             </CardTitle>
             <CardDescription className="text-center text-gray-900 text-sm dark:text-white">
-              {success
-                ? 'Your password has been successfully updated'
-                : 'Enter a strong password to secure your account'}
+              {success ? t('reset_password.subtitle_success') : t('reset_password.subtitle_form')}
             </CardDescription>
           </CardHeader>
 
@@ -454,6 +482,7 @@ export default function ResetPassword() {
                 showConfirmPassword={showConfirmPassword}
                 setShowPassword={setShowPassword}
                 setShowConfirmPassword={setShowConfirmPassword}
+                setTurnstileToken={setTurnstileToken}
               />
             )}
           </CardContent>

@@ -1,28 +1,10 @@
 /**
- * Centralized auth token access — reads from Zustand store
- * with localStorage fallback for hydration edge cases.
+ * The storefront authenticates via an httpOnly access-token cookie (set by the
+ * API on login) rather than a Bearer token in localStorage or memory. There is
+ * no Authorization header to attach, so this always returns an empty object.
+ * The cookie is sent automatically because the API client uses
+ * `credentials: 'include'`.
  */
-import { useAuthStore } from '@/stores/auth'
-
-export function getAuthToken(): string | null {
-  const store = useAuthStore.getState()
-  if (store.token) return store.token
-
-  // Fallback during Zustand persist hydration
-  try {
-    const raw = localStorage.getItem('auth-storage')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      return parsed?.state?.token || null
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return null
-}
-
 export function authHeaders(): Record<string, string> {
-  const token = getAuthToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return {}
 }

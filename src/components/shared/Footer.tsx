@@ -10,47 +10,93 @@ import {
   Truck,
 } from 'lucide-react'
 import { useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { newsletterApi } from '@/api/newsletter'
 import { Logo } from '@/components/shared/Logo'
+import { isApiError } from '@/lib/api-response'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
 import { paths } from '@/routes/paths'
 import { useConsentStore } from '@/stores/consent'
 
-const SHOP_LINKS = [
-  { label: 'All Products', to: paths.products },
-  { label: 'New Arrivals', to: `${paths.products}?sort=newest` },
-  { label: 'Best Sellers', to: `${paths.products}?sort=best_sellers` },
-  { label: 'Trending', to: `${paths.products}?sort=trending` },
-]
+type Translate = (key: string) => string
 
-const COMPANY_LINKS = [
-  { label: 'About Us', href: 'https://htashop.com/about' },
-  { label: 'Contact Us', href: 'https://htashop.com/contact' },
-  { label: 'Terms of Use', to: paths.policiesTerms },
-  { label: 'Privacy Policy', to: paths.policiesPrivacy },
-  { label: 'Refund Policy', to: paths.policiesRefund },
-  { label: 'Cookies Policy', to: paths.policiesCookies },
-  {
-    label: 'Cookie Settings',
-    action: () => useConsentStore.getState().openSettings(),
-  },
-  { label: 'Become a Supplier', to: paths.register },
-]
+interface FooterLink {
+  label: string
+  to?: string
+  href?: string
+  action?: () => void
+}
 
-const SUPPORT_LINKS = [
-  { label: 'Help Center', href: 'https://htashop.com/help' },
-  { label: 'Shipping & Returns', href: 'https://htashop.com/shipping' },
-  { label: 'Track Your Order', to: paths.accountOrders },
-  { label: 'Request a Quote', href: 'https://htashop.com/quote' },
-  { label: 'FAQs', href: 'https://htashop.com/faqs' },
-]
+const HTASOL_URL = 'https://htasol.com'
 
-const TRUST_ITEMS = [
-  { icon: ShieldCheck, title: 'Verified Suppliers', description: 'Every seller is vetted' },
-  { icon: Truck, title: 'Fast Delivery', description: 'Tracked shipping worldwide' },
-  { icon: CreditCard, title: 'Secure Payments', description: 'COD, cards & online payments' },
-  { icon: Headphones, title: '24/7 Support', description: "We're here when you need us" },
-]
+function getShopLinks(t: Translate): FooterLink[] {
+  return [
+    { label: t('footer.all_products'), to: paths.products },
+    { label: t('footer.new_arrivals'), to: `${paths.products}?sort=newest` },
+    { label: t('footer.best_sellers'), to: `${paths.products}?sort=best_sellers` },
+    { label: t('footer.trending'), to: `${paths.products}?sort=trending` },
+  ]
+}
 
+function getCompanyLinks(t: Translate): FooterLink[] {
+  return [
+    { label: t('footer.blog'), to: paths.blogs },
+    { label: t('footer.news'), to: paths.news },
+    { label: t('footer.events'), to: paths.events },
+    { label: t('footer.become_supplier'), to: paths.register },
+  ]
+}
+
+function getSupportLinks(t: Translate): FooterLink[] {
+  return [
+    { label: t('footer.contact_us'), to: paths.contact },
+    { label: t('footer.feedback'), to: paths.feedback },
+    { label: t('footer.track_order'), to: paths.accountOrders },
+    { label: t('footer.returns_refunds'), to: paths.policiesRefund },
+    { label: t('footer.email_support'), href: `mailto:${COMPANY.email}` },
+  ]
+}
+
+function getLegalLinks(t: Translate): FooterLink[] {
+  return [
+    { label: t('footer.terms_of_use'), to: paths.policiesTerms },
+    { label: t('footer.privacy_policy'), to: paths.policiesPrivacy },
+    { label: t('footer.refund_policy'), to: paths.policiesRefund },
+    { label: t('footer.cookies_policy'), to: paths.policiesCookies },
+    {
+      label: t('footer.cookie_settings'),
+      action: () => useConsentStore.getState().openSettings(),
+    },
+  ]
+}
+
+function getTrustItems(t: Translate) {
+  return [
+    {
+      icon: ShieldCheck,
+      title: t('footer.trust_verified_suppliers'),
+      description: t('footer.trust_verified_suppliers_desc'),
+    },
+    {
+      icon: Truck,
+      title: t('footer.trust_fast_delivery'),
+      description: t('footer.trust_fast_delivery_desc'),
+    },
+    {
+      icon: CreditCard,
+      title: t('footer.trust_secure_payments'),
+      description: t('footer.trust_secure_payments_desc'),
+    },
+    {
+      icon: Headphones,
+      title: t('footer.trust_support'),
+      description: t('footer.trust_support_desc'),
+    },
+  ]
+}
+
+/** Brand names — deliberately not translated. */
 const SOCIALS = [
   {
     label: 'Facebook',
@@ -80,17 +126,10 @@ const SOCIALS = [
 ]
 
 const CONTACT = [
-  { icon: MapPin, label: 'High Tech Advancement Solutions (Private) Limited, Pakistan' },
-  { icon: Phone, label: '+92 300 0000000', href: 'tel:+923000000000' },
-  { icon: Mail, label: 'sales@htashop.com', href: 'mailto:sales@htashop.com' },
+  { icon: MapPin, label: COMPANY_ADDRESS_LINE },
+  { icon: Phone, label: COMPANY.phoneDisplay, href: COMPANY.phoneHref },
+  { icon: Mail, label: COMPANY.salesEmail, href: `mailto:${COMPANY.salesEmail}` },
 ]
-
-interface FooterLink {
-  label: string
-  to?: string
-  href?: string
-  action?: () => void
-}
 
 function FooterLinkItem({ link }: { link: FooterLink }) {
   const className =
@@ -134,15 +173,35 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
 }
 
 export function Footer() {
+  const { t } = useTranslation()
   const year = new Date().getFullYear()
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribeError, setSubscribeError] = useState<string | null>(null)
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email.trim()) return
-    setSubscribed(true)
-    setEmail('')
+    const value = email.trim()
+    if (!value) return
+
+    setSubscribeError(null)
+    setSubscribing(true)
+    try {
+      await newsletterApi.subscribe({
+        email: value,
+        consent: true,
+        source_page: window.location.href,
+      })
+      setSubscribed(true)
+      setEmail('')
+    } catch (error) {
+      setSubscribeError(
+        isApiError(error) && error.message ? error.message : t('footer.newsletter_error')
+      )
+    } finally {
+      setSubscribing(false)
+    }
   }
 
   return (
@@ -152,40 +211,46 @@ export function Footer() {
         <div className="shell mx-auto flex flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <h2 className="font-bold text-gray-900 text-xl sm:text-2xl dark:text-white">
-              Stay ahead of the market
+              {t('footer.newsletter_title')}
             </h2>
             <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-              Get new product launches, exclusive deals, and industry insights in your inbox.
+              {t('footer.newsletter_description')}
             </p>
           </div>
 
           {subscribed ? (
             <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-5 py-3 font-medium text-green-700 text-sm dark:border-green-500/30 dark:bg-green-500/10 dark:text-green-400">
               <CheckCircle2 className="h-4 w-4" />
-              You're subscribed. Thank you!
+              {t('footer.newsletter_success')}
             </div>
           ) : (
-            <form onSubmit={handleSubscribe} className="flex w-full max-w-md gap-2">
-              <label htmlFor="subscribe-email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="subscribe-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your work email"
-                className="h-11 flex-1 rounded-xl border border-gray-300 bg-white px-4 text-gray-900 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
-              />
-              <button
-                type="submit"
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-sm text-white transition-colors hover:bg-blue-700"
-              >
-                <Send className="h-4 w-4" />
-                Subscribe
-              </button>
-            </form>
+            <div className="w-full max-w-md">
+              <form onSubmit={handleSubscribe} className="flex w-full gap-2">
+                <label htmlFor="subscribe-email" className="sr-only">
+                  {t('footer.newsletter_email_label')}
+                </label>
+                <input
+                  id="subscribe-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('footer.newsletter_placeholder')}
+                  className="h-11 flex-1 rounded-xl border border-gray-300 bg-white px-4 text-gray-900 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+                />
+                <button
+                  type="submit"
+                  disabled={subscribing}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                >
+                  <Send className="h-4 w-4" />
+                  {subscribing ? t('footer.newsletter_submitting') : t('footer.newsletter_submit')}
+                </button>
+              </form>
+              {subscribeError && (
+                <p className="mt-2 text-red-600 text-xs dark:text-red-400">{subscribeError}</p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -195,17 +260,16 @@ export function Footer() {
         <div className="grid gap-10 lg:grid-cols-12">
           {/* Brand */}
           <div className="lg:col-span-4">
-            <Link to={paths.home} aria-label="HTAShop home">
+            <Link to={paths.home} aria-label={t('shell.home_link')}>
               <Logo width={60} />
             </Link>
             <p className="mt-4 max-w-md text-gray-500 text-sm leading-relaxed dark:text-gray-400">
-              HTAShop is an e-commerce platform that connects buyers with verified suppliers — shop
-              online with secure payments, fast delivery, and support at every step.
+              {t('footer.brand_description')}
             </p>
 
             {/* Trust badges */}
             <div className="mt-6 grid grid-cols-2 gap-3">
-              {TRUST_ITEMS.map((item) => (
+              {getTrustItems(t).map((item) => (
                 <div
                   key={item.title}
                   className="flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900/60"
@@ -250,19 +314,19 @@ export function Footer() {
 
           {/* Link columns */}
           <div className="lg:col-span-2">
-            <FooterColumn title="Shop" links={SHOP_LINKS} />
+            <FooterColumn title={t('footer.column_shop')} links={getShopLinks(t)} />
           </div>
           <div className="lg:col-span-2">
-            <FooterColumn title="Company" links={COMPANY_LINKS} />
+            <FooterColumn title={t('footer.column_company')} links={getCompanyLinks(t)} />
           </div>
           <div className="lg:col-span-2">
-            <FooterColumn title="Support" links={SUPPORT_LINKS} />
+            <FooterColumn title={t('footer.column_support')} links={getSupportLinks(t)} />
           </div>
 
           {/* Contact */}
           <div className="lg:col-span-2">
             <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wider dark:text-white">
-              Contact
+              {t('footer.column_contact')}
             </h3>
             <ul className="mt-4 space-y-3">
               {CONTACT.map((item) => (
@@ -288,22 +352,38 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Legal strip + bottom bar */}
       <div className="border-gray-200 border-t dark:border-gray-800/80">
-        <div className="shell mx-auto flex flex-col gap-2 px-4 py-6 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          <p className="text-gray-500 text-xs">
-            &copy; {year} HTAShop — A product of{' '}
-            <a
-              href="https://htasol.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
-            >
-              High Tech Advancement Solutions (Private) Limited
-            </a>{' '}
-            · CUIN 0321375
-          </p>
-          <p className="text-gray-500 text-xs">Secure online shopping · Fast global delivery</p>
+        <div className="shell mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          <ul className="flex flex-wrap gap-x-5 gap-y-2">
+            {getLegalLinks(t).map((link) => (
+              <li key={link.label}>
+                <FooterLinkItem link={link} />
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-4 flex flex-col gap-2 border-gray-100 border-t pt-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-800/60">
+            <p className="text-gray-500 text-xs">
+              <Trans
+                i18nKey="footer.copyright_line"
+                values={{ year, company: COMPANY.name, cuin: COMPANY.cuin }}
+                components={{
+                  companyLink: (
+                    // Children are injected by i18next from the translation string.
+                    // biome-ignore lint/a11y/useAnchorContent: anchor text comes from the translation
+                    <a
+                      href={HTASOL_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-gray-500 transition-colors hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+                    />
+                  ),
+                }}
+              />
+            </p>
+            <p className="text-gray-500 text-xs">{t('footer.secure_shopping')}</p>
+          </div>
         </div>
       </div>
     </footer>

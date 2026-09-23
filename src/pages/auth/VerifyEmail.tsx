@@ -1,6 +1,9 @@
 import { AlertCircle, ArrowLeft, CheckCircle, Loader, Mail, Send } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
+import TurnstileWidget from '@/components/auth/TurnstileWidget'
+import { Seo } from '@/components/seo/Seo'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +12,7 @@ import { useToast } from '@/components/ui/Toaster'
 import { authApi } from '@/lib/api'
 
 export default function VerifyEmail() {
+  const { t } = useTranslation('auth')
   const { success: showToast } = useToast()
   const [searchParams] = useSearchParams()
 
@@ -17,11 +21,11 @@ export default function VerifyEmail() {
   const [isResending, setIsResending] = useState(false)
   const [resendCooldown, setResendCooldown] = useState(0)
   const [error, setError] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
   const toastShownRef = useRef(false)
 
   const token = searchParams.get('token')
   const emailParam = searchParams.get('email')
-  const emailIdParam = searchParams.get('email_id')
 
   const verifyAccountEmail = useCallback(
     async (emailAddr: string, verificationToken: string) => {
@@ -34,54 +38,30 @@ export default function VerifyEmail() {
           setStatus('success')
           if (!toastShownRef.current) {
             toastShownRef.current = true
-            showToast('Email verified successfully!')
+            showToast(t('verify_email.toast_verified'))
           }
         } else {
           setStatus('error')
-          setError(data.message || 'Verification failed')
+          setError(data.message || t('verify_email.failed'))
         }
       } catch (err: unknown) {
         setStatus('error')
-        setError(err instanceof Error ? err.message : 'Verification failed')
+        setError(err instanceof Error ? err.message : t('verify_email.failed'))
       }
     },
-    [showToast]
+    [showToast, t]
   )
 
-  const verifyAdditionalEmail = useCallback(
-    async (verificationToken: string, emailId: number) => {
-      try {
-        setStatus('verifying')
-        setError('')
-        const data = await authApi.verifyEmail(verificationToken, String(emailId))
-        if (data.success) {
-          setStatus('success')
-          if (!toastShownRef.current) {
-            toastShownRef.current = true
-            showToast('Email verified successfully!')
-          }
-        } else {
-          setStatus('error')
-          setError(data.message || 'Verification failed')
-        }
-      } catch (err: unknown) {
-        setStatus('error')
-        setError(err instanceof Error ? err.message : 'Verification failed')
-      }
-    },
-    [showToast]
-  )
-
-  // Auto-verify if token is present
+  // Auto-verify when the link carries a token; otherwise prefill the address.
+  // useSearchParams already percent-decodes, so decoding again would throw on
+  // an address containing "%".
   useEffect(() => {
-    if (token && emailIdParam) {
-      verifyAdditionalEmail(token, Number(emailIdParam))
-    } else if (token && emailParam) {
+    if (token && emailParam) {
       verifyAccountEmail(emailParam, token)
     } else if (emailParam) {
-      setEmail(decodeURIComponent(emailParam))
+      setEmail(emailParam)
     }
-  }, [emailParam, verifyAdditionalEmail, token, verifyAccountEmail, emailIdParam])
+  }, [emailParam, token, verifyAccountEmail])
 
   // Resend cooldown timer
   useEffect(() => {
@@ -91,18 +71,18 @@ export default function VerifyEmail() {
   }, [resendCooldown])
 
   const handleResendEmail = async () => {
-    if (!email || isResending || resendCooldown > 0) return
+    if (!email || isResending || resendCooldown > 0 || !turnstileToken) return
     try {
       setIsResending(true)
-      const data = await authApi.resendVerificationEmail(email)
+      const data = await authApi.resendVerificationEmail(email, turnstileToken)
       if (data.success) {
         setResendCooldown(60)
-        showToast('Verification email resent!')
+        showToast(t('verify_email.toast_resent'))
       } else {
-        setError(data.message || 'Failed to resend email')
+        setError(data.message || t('verify_email.error_resend'))
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to resend email')
+      setError(err instanceof Error ? err.message : t('verify_email.error_resend'))
     } finally {
       setIsResending(false)
     }
@@ -116,29 +96,31 @@ export default function VerifyEmail() {
   }[status]
 
   const statusTitle = {
-    verifying: 'Verifying your email…',
-    success: 'Email verified!',
-    error: 'Verification failed',
-    pending: 'Verify your email',
+    verifying: t('verify_email.verifying'),
+    success: t('verify_email.verified'),
+    error: t('verify_email.failed'),
+    pending: t('verify_email.title'),
   }[status]
 
   const statusDescription = {
     verifying: '',
-    success: 'You can now sign in to your account.',
+    success: t('verify_email.success_description'),
     error,
-    pending: 'Enter your email to resend the verification link.',
+    pending: t('verify_email.pending_description'),
   }[status]
 
   return (
     <>
+      <Seo title={t('seo.verify_email')} noindex />
+
       {/* Back link */}
-      <div className="mb-6 text-center sm:text-left">
+      <div className="mb-6 text-center sm:text-start">
         <Link
           to="/login"
           className="inline-flex items-center gap-1.5 font-medium text-gray-500 text-sm hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to login
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t('common.back_to_login')}
         </Link>
       </div>
 
@@ -167,7 +149,7 @@ export default function VerifyEmail() {
           {status === 'success' && (
             <Link to="/login">
               <Button className="h-11 w-full bg-gradient-to-r from-blue-600 to-blue-700 font-medium text-white">
-                Sign in to your account
+                {t('verify_email.sign_in')}
               </Button>
             </Link>
           )}
@@ -177,7 +159,7 @@ export default function VerifyEmail() {
             <div>
               <Link to="/login">
                 <Button variant="outline" className="h-11 w-full">
-                  Back to login
+                  {t('common.back_to_login')}
                 </Button>
               </Link>
             </div>
@@ -191,43 +173,50 @@ export default function VerifyEmail() {
                   htmlFor="verify-email"
                   className="font-medium text-gray-700 text-sm dark:text-gray-300"
                 >
-                  Email address
+                  {t('common.email_address')}
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Mail className="absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     id="verify-email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t('common.email_placeholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-11 bg-gray-50 pl-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800"
+                    className="h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800"
                   />
                 </div>
               </div>
 
               {error && (
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 text-sm dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+                >
                   {error}
                 </div>
               )}
 
+              <TurnstileWidget onVerify={setTurnstileToken} />
+
               <Button
                 onClick={handleResendEmail}
-                disabled={isResending || resendCooldown > 0 || !email}
+                disabled={isResending || resendCooldown > 0 || !email || !turnstileToken}
                 className="h-11 w-full bg-gradient-to-r from-blue-600 to-blue-700 font-medium text-white shadow-blue-600/20 shadow-md"
               >
                 {isResending ? (
                   <span className="flex items-center gap-2">
                     <Loader className="h-4 w-4 animate-spin" />
-                    Sending…
+                    {t('verify_email.sending')}
                   </span>
                 ) : resendCooldown > 0 ? (
-                  <span className="flex items-center gap-2">Resend in {resendCooldown}s</span>
+                  <span className="flex items-center gap-2">
+                    {t('verify_email.resend_in', { seconds: resendCooldown })}
+                  </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     <Send className="h-4 w-4" />
-                    Resend verification email
+                    {t('verify_email.submit')}
                   </span>
                 )}
               </Button>

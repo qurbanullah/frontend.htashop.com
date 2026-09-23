@@ -47,7 +47,7 @@ export interface CreateReviewPayload {
 
 export const reviewsApi = {
   async list(routeKey: string, page = 1, perPage = 10): Promise<ReviewListData> {
-    const res = await api.get(`catalog/products/${routeKey}/reviews`, {
+    const res = await api.get(`catalog/products/${encodeURIComponent(routeKey)}/reviews`, {
       searchParams: { page, per_page: perPage },
     })
     const body = await parseApiResponse<ReviewListData>(res)
@@ -60,7 +60,7 @@ export const reviewsApi = {
   },
 
   async summary(routeKey: string): Promise<ReviewSummary> {
-    const res = await api.get(`catalog/products/${routeKey}/reviews/summary`)
+    const res = await api.get(`catalog/products/${encodeURIComponent(routeKey)}/reviews/summary`)
     const body = await parseApiResponse<ReviewSummary>(res)
     return (
       (body.data as ReviewSummary) ?? {
@@ -72,7 +72,7 @@ export const reviewsApi = {
   },
 
   async create(routeKey: string, payload: CreateReviewPayload): Promise<Review> {
-    const res = await api.post(`catalog/products/${routeKey}/reviews`, {
+    const res = await api.post(`catalog/products/${encodeURIComponent(routeKey)}/reviews`, {
       json: payload,
       headers: authHeaders(),
       throwHttpErrors: false,
@@ -85,7 +85,7 @@ export const reviewsApi = {
     uuid: string,
     helpful: boolean
   ): Promise<{ helpful_count: number; not_helpful_count: number }> {
-    const res = await api.post(`reviews/${uuid}/helpful`, {
+    const res = await api.post(`reviews/${encodeURIComponent(uuid)}/helpful`, {
       json: { helpful },
       headers: authHeaders(),
       throwHttpErrors: false,

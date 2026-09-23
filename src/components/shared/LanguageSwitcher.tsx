@@ -1,31 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { isRTL } from '@/i18n/config'
+import { getLanguageFlag } from '@/i18n/config'
 
 interface Language {
   code: string
   name: string
-  flag: string
 }
 
+const DEFAULT_LANGUAGE: Language = { code: 'en', name: 'English' }
+
 const languages: Language[] = [
-  { code: 'en', name: 'English', flag: 'GB' },
-  { code: 'ur', name: 'اردو', flag: 'PK' },
-  { code: 'de', name: 'Deutsch', flag: 'DE' },
+  DEFAULT_LANGUAGE,
+  { code: 'ur', name: 'اردو' },
+  { code: 'de', name: 'Deutsch' },
 ]
 
-const DEFAULT_LANGUAGE: Language = { code: 'en', name: 'English', flag: 'GB' }
-
-// Helper component to render flag
-function FlagIcon({ countryCode, className = '' }: { countryCode: string; className?: string }) {
+/**
+ * Flag emoji rather than flagcdn.com images: no third-party request (and no
+ * visitor-IP leak) for what is purely decorative chrome.
+ */
+function FlagIcon({ languageCode }: { languageCode: string }) {
   return (
-    <img
-      src={`https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`}
-      srcSet={`https://flagcdn.com/w80/${countryCode.toLowerCase()}.png 2x`}
-      alt={`${countryCode} flag`}
-      className={`inline-block ${className}`}
-      style={{ width: '24px', height: '18px' }}
-    />
+    <span aria-hidden="true" className="inline-block text-base leading-none">
+      {getLanguageFlag(languageCode)}
+    </span>
   )
 }
 
@@ -34,21 +32,8 @@ export function LanguageSwitcher() {
   const currentLanguage = i18n.language
   const [isOpen, setIsOpen] = useState(false)
 
-  // Update document attributes when language changes
-  useEffect(() => {
-    const htmlElement = document.documentElement
-    const dir = isRTL(currentLanguage) ? 'rtl' : 'ltr'
-
-    htmlElement.setAttribute('lang', currentLanguage)
-    htmlElement.setAttribute('dir', dir)
-
-    // Update body class for RTL-specific styling
-    if (isRTL(currentLanguage)) {
-      document.body.classList.add('rtl')
-    } else {
-      document.body.classList.remove('rtl')
-    }
-  }, [currentLanguage])
+  // <html lang>/<html dir> are handled by the i18n instance (see i18n/config.ts)
+  // so they stay correct on routes that render no language UI.
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -64,9 +49,11 @@ export function LanguageSwitcher() {
     setIsOpen(false)
   }
 
-  const getCurrentLanguage = (): Language => {
-    return languages.find((lang) => lang.code === currentLanguage) ?? DEFAULT_LANGUAGE
-  }
+  // i18n.language can be region-qualified ("en-US"), so match on the base code.
+  const getCurrentLanguage = (): Language =>
+    languages.find((lang) => lang.code === currentLanguage.split('-')[0]) ?? DEFAULT_LANGUAGE
+
+  const current = getCurrentLanguage()
 
   return (
     <div className="relative">
@@ -76,82 +63,44 @@ export function LanguageSwitcher() {
           e.stopPropagation()
           setIsOpen(!isOpen)
         }}
-        className="flex items-center gap-2 rounded-lg px-3 py-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="flex items-center gap-1.5 rounded-lg p-2 text-white transition-colors hover:bg-white/10"
         aria-label="Change language"
-        title={getCurrentLanguage().name}
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        title={current.name}
       >
-        <FlagIcon countryCode={getCurrentLanguage().flag} />
+        <FlagIcon languageCode={current.code} />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 z-50 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <div
+          role="menu"
+          className="absolute end-0 top-full z-50 mt-2 w-40 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+        >
           {languages.map((language) => (
             <button
               key={language.code}
               type="button"
+              role="menuitem"
               onClick={() => changeLanguage(language.code)}
               className={`flex w-full items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                currentLanguage === language.code
+                current.code === language.code
                   ? 'bg-blue-50 dark:bg-blue-900/30'
                   : 'dark:text-gray-100'
               }`}
               title={language.name}
             >
-              <FlagIcon countryCode={language.flag} />
-              <span className="flex-1 text-left font-medium text-sm dark:text-gray-100">
+              <FlagIcon languageCode={language.code} />
+              <span className="flex-1 text-start font-medium text-sm dark:text-gray-100">
                 {language.name}
               </span>
-              {currentLanguage === language.code && (
+              {current.code === language.code && (
                 <span className="text-blue-600 dark:text-blue-400">✓</span>
               )}
             </button>
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-// Simple language switcher without dropdown (alternative)
-export function SimpleLanguageSwitcher() {
-  const { i18n } = useTranslation()
-  const currentLanguage = i18n.language
-
-  useEffect(() => {
-    const htmlElement = document.documentElement
-    const dir = isRTL(currentLanguage) ? 'rtl' : 'ltr'
-
-    htmlElement.setAttribute('lang', currentLanguage)
-    htmlElement.setAttribute('dir', dir)
-
-    if (isRTL(currentLanguage)) {
-      document.body.classList.add('rtl')
-    } else {
-      document.body.classList.remove('rtl')
-    }
-  }, [currentLanguage])
-
-  const changeLanguage = (languageCode: string) => {
-    i18n.changeLanguage(languageCode)
-  }
-
-  return (
-    <div className="flex items-center gap-2">
-      {languages.map((language) => (
-        <button
-          key={language.code}
-          type="button"
-          onClick={() => changeLanguage(language.code)}
-          className={`rounded-lg px-3 py-2 font-medium text-sm transition-colors ${
-            currentLanguage === language.code
-              ? 'bg-primary text-primary-foreground'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-          title={language.name}
-        >
-          <FlagIcon countryCode={language.flag} />
-        </button>
-      ))}
     </div>
   )
 }

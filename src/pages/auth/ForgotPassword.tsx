@@ -1,9 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, CheckCircle, KeyRound, Mail, Send, UserCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
+import TurnstileWidget from '@/components/auth/TurnstileWidget'
+import { Seo } from '@/components/seo/Seo'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,16 +14,24 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { authApi } from '@/lib/api'
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-})
+type Translate = (key: string) => string
 
-type ForgotPasswordForm = z.infer<typeof forgotPasswordSchema>
+function createForgotPasswordSchema(t: Translate) {
+  return z.object({
+    email: z.string().email(t('validation.email_valid')),
+  })
+}
+
+type ForgotPasswordForm = z.infer<ReturnType<typeof createForgotPasswordSchema>>
 
 export default function ForgotPassword() {
+  const { t } = useTranslation('auth')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+  const forgotPasswordSchema = useMemo(() => createForgotPasswordSchema(t), [t])
 
   const {
     register,
@@ -36,11 +47,11 @@ export default function ForgotPassword() {
       setError(null)
       setSuccess(false)
 
-      await authApi.forgotPassword(data.email, 'manage')
+      await authApi.forgotPassword(data.email, 'main', turnstileToken)
 
       setSuccess(true)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send reset link. Please try again.')
+      setError(err instanceof Error ? err.message : t('forgot_password.error_generic'))
     } finally {
       setLoading(false)
     }
@@ -48,24 +59,22 @@ export default function ForgotPassword() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-50 via-white to-blue-50 px-4 py-8 sm:px-6 lg:px-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Seo title={t('seo.forgot_password')} noindex />
       <div className="w-full max-w-xl sm:px-8">
         {/* Back Link */}
         <Link
           to="/login"
           className="mb-6 inline-flex items-center gap-2 font-medium text-slate-600 text-sm transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Login
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t('common.back_to_login')}
         </Link>
 
         {/* Header */}
         <div className="-mb-6 text-center">
           <Link to="/" className="inline-flex items-center justify-center gap-3">
-            <div className="dark:hidden">
-              <Logo width={120} />
-            </div>
+            <Logo width={120} />
           </Link>
-          {/* <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Journal Management System</p> */}
         </div>
 
         <Card className="overflow-hidden border-2 border-blue-200 bg-white shadow-2xl dark:border-blue-900/50 dark:bg-gray-800">
@@ -74,10 +83,10 @@ export default function ForgotPassword() {
               <KeyRound className="h-7 w-7 text-blue-600 dark:text-blue-400" />
             </div>
             <CardTitle className="text-center font-bold text-2xl text-gray-900 dark:text-white">
-              Reset Your Password
+              {t('forgot_password.title')}
             </CardTitle>
             <CardDescription className="text-center text-gray-900 text-sm dark:text-white">
-              We'll send you a secure link to reset your password
+              {t('forgot_password.subtitle')}
             </CardDescription>
           </CardHeader>
 
@@ -89,11 +98,10 @@ export default function ForgotPassword() {
                   <CheckCircle className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <div className="flex-1">
                     <p className="mb-1 font-semibold text-emerald-900 dark:text-emerald-100">
-                      Reset Link Sent Successfully!
+                      {t('forgot_password.success_title')}
                     </p>
                     <p className="text-emerald-800 text-sm dark:text-emerald-200">
-                      Check your email for a link to reset your password. If it doesn't appear
-                      within a few minutes, check your spam folder.
+                      {t('forgot_password.success_body')}
                     </p>
                   </div>
                 </div>
@@ -101,9 +109,9 @@ export default function ForgotPassword() {
                 {/* Info Box */}
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
                   <p className="text-center text-blue-900 text-sm dark:text-blue-100">
-                    <span className="font-medium">Important:</span>
+                    <span className="font-medium">{t('forgot_password.important_label')}</span>
                     <br />
-                    The reset link will expire in 60 minutes for security reasons.
+                    {t('forgot_password.important_body')}
                   </p>
                 </div>
 
@@ -114,7 +122,7 @@ export default function ForgotPassword() {
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="bg-white px-4 text-slate-500 dark:bg-gray-800 dark:text-slate-400">
-                      What's next?
+                      {t('forgot_password.next_title')}
                     </span>
                   </div>
                 </div>
@@ -139,7 +147,7 @@ export default function ForgotPassword() {
                         d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
                       />
                     </svg>
-                    Return to Login
+                    {t('forgot_password.return_to_login')}
                   </Link>
 
                   <button
@@ -148,7 +156,7 @@ export default function ForgotPassword() {
                     className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 text-sm transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800"
                   >
                     <Send className="h-5 w-5" />
-                    Send Another Link
+                    {t('forgot_password.send_another')}
                   </button>
                 </div>
               </div>
@@ -180,21 +188,21 @@ export default function ForgotPassword() {
                     className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200"
                   >
                     <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    Email Address
+                    {t('common.email_address')}
                   </Label>
                   <div className="relative">
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Email Address"
+                      placeholder={t('common.email_address')}
                       {...register('email')}
-                      className={`h-11 border-2 pl-10 text-base transition-all ${
+                      className={`h-11 border-2 ps-10 text-base transition-all ${
                         errors.email
                           ? 'border-red-500 focus:ring-red-500'
                           : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
                       }`}
                     />
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
                       <svg
                         className="h-5 w-5 text-slate-400 dark:text-slate-500"
                         fill="none"
@@ -212,7 +220,10 @@ export default function ForgotPassword() {
                     </div>
                   </div>
                   {errors.email && (
-                    <p className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400">
+                    <p
+                      role="alert"
+                      className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400"
+                    >
                       <svg
                         className="h-4 w-4"
                         fill="currentColor"
@@ -234,12 +245,16 @@ export default function ForgotPassword() {
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="text-slate-600 text-sm dark:text-slate-400">
                     <span className="font-medium text-slate-900 dark:text-slate-200">
-                      How it works:
+                      {t('forgot_password.how_it_works_title')}
                     </span>
                     <br />
-                    Enter your registered email address and we'll send you a secure link to create a
-                    new password.
+                    {t('forgot_password.how_it_works_body')}
                   </p>
+                </div>
+
+                {/* Turnstile */}
+                <div className="flex justify-center">
+                  <TurnstileWidget onVerify={setTurnstileToken} />
                 </div>
 
                 {/* Submit Button */}
@@ -250,13 +265,13 @@ export default function ForgotPassword() {
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
-                      <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                      Sending Reset Link...
+                      <div className="me-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      {t('forgot_password.submitting')}
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
-                      <Send className="mr-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                      Send Password Reset Link
+                      <Send className="me-2 h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+                      {t('forgot_password.submit')}
                     </div>
                   )}
                 </Button>
@@ -268,7 +283,7 @@ export default function ForgotPassword() {
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="bg-white px-4 text-slate-500 dark:bg-gray-800 dark:text-slate-400">
-                      or
+                      {t('common.or')}
                     </span>
                   </div>
                 </div>
@@ -280,7 +295,7 @@ export default function ForgotPassword() {
                     className="flex items-center justify-center gap-2 rounded-lg border-2 border-blue-200 bg-blue-50 px-4 py-2 font-medium text-blue-700 text-sm transition-all hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
                   >
                     <UserCheck className="h-4 w-4" />
-                    Check Account
+                    {t('forgot_password.check_account')}
                   </Link>
                   <Link
                     to="/login"
@@ -300,7 +315,7 @@ export default function ForgotPassword() {
                         d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
                       />
                     </svg>
-                    Back to Login
+                    {t('common.back_to_login')}
                   </Link>
                 </div>
               </form>

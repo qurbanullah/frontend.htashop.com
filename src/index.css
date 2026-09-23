@@ -3,6 +3,47 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* ────────────────────────────────────────────────────────────────────────
+   Semantic design tokens.
+
+   Tailwind v4 emits utilities as `var(--color-*)` (verified in the built
+   bundle), so these variables must exist for `bg-primary`, `ring-ring`,
+   `border-input`, `bg-background`, … to compile at all. Without them the
+   shared Button rendered with no background/border and no focus ring.
+   The `.dark` block re-points them for dark mode.
+   ──────────────────────────────────────────────────────────────────────── */
+@theme {
+    --color-background: #ffffff;
+    --color-foreground: #111827;
+    --color-primary: #2563eb;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #f3f4f6;
+    --color-secondary-foreground: #111827;
+    --color-muted: #f3f4f6;
+    --color-muted-foreground: #6b7280;
+    --color-accent: #f3f4f6;
+    --color-accent-foreground: #111827;
+    --color-input: #d1d5db;
+    --color-border: #e5e7eb;
+    --color-ring: #3b82f6;
+}
+
+.dark {
+    --color-background: #111827;
+    --color-foreground: #f3f4f6;
+    --color-primary: #3b82f6;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #1f2937;
+    --color-secondary-foreground: #f3f4f6;
+    --color-muted: #1f2937;
+    --color-muted-foreground: #9ca3af;
+    --color-accent: #1f2937;
+    --color-accent-foreground: #f3f4f6;
+    --color-input: #374151;
+    --color-border: #1f2937;
+    --color-ring: #60a5fa;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
    Layout tokens & page shells
 
    Chrome (header/footer/nav) and browse surfaces use the wide `shell`;

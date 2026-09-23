@@ -1,9 +1,16 @@
 import { storageApi } from '@/api/storage'
+import i18n from '@/i18n/config'
 
 /**
  * Shared avatar upload pipeline (resize → direct-to-S3 upload → keys).
- * Used by AvatarUpload and ProfilePage.
+ * Used by ProfilePage.
+ *
+ * Failures are surfaced verbatim by the caller, so they are localised here
+ * through the i18n instance rather than hardcoded in English.
  */
+function uploadFailed(): Error {
+  return new Error(i18n.t('account.profile_photo_failed'))
+}
 
 export const AVATAR_SIZES = [
   { suffix: 'original', width: 0 },
@@ -12,25 +19,58 @@ export const AVATAR_SIZES = [
   { suffix: 'medium', width: 500 },
 ]
 
-export async function resizeImage(file: File, targetWidth: number): Promise<Blob> {
+const JPEG_QUALITY = 0.85
+
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.onload = () => {
-      const h = Math.round(targetWidth * (img.height / img.width))
-      const canvas = document.createElement('canvas')
-      canvas.width = targetWidth
-      canvas.height = h
-      canvas.getContext('2d')?.drawImage(img, 0, 0, targetWidth, h)
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Blob failed'))), 'image/jpeg', 0.85)
-    }
-    img.onerror = () => reject(new Error('Image load failed'))
-    img.src = URL.createObjectURL(file)
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(uploadFailed())
+    img.src = src
   })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(uploadFailed())),
+      'image/jpeg',
+      JPEG_QUALITY
+    )
+  })
+}
+
+export async function resizeImage(file: File, targetWidth: number): Promise<Blob> {
+  const objectUrl = URL.createObjectURL(file)
+
+  try {
+    const img = await loadImage(objectUrl)
+    // A broken or zero-sized image would make the height NaN/Infinity and the
+    // canvas dimensions invalid, so bail out before touching the canvas.
+    if (!img.width || !img.height) throw uploadFailed()
+
+    // Never upscale — a small source is kept at its native size.
+    const width = Math.min(targetWidth, img.width)
+    const height = Math.max(1, Math.round(width * (img.height / img.width)))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw uploadFailed()
+    ctx.drawImage(img, 0, 0, width, height)
+
+    return await canvasToBlob(canvas)
+  } finally {
+    // Always release the blob handle, including on the error paths above.
+    URL.revokeObjectURL(objectUrl)
+  }
 }
 
 async function uploadVariant(key: string, blob: Blob): Promise<{ key: string; url: string }> {
   const presigned = await storageApi.getPresignedUrl(key, 'image/jpeg', 'avatars', blob.size)
-  if (!presigned.success || !presigned.data?.url) throw new Error('Failed to get upload URL')
+  if (!presigned.success || !presigned.data?.url) throw uploadFailed()
 
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest()

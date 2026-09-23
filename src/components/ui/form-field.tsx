@@ -20,6 +20,12 @@ export interface FormFieldProps {
   /** Optional class applied to the inner input/textarea */
   inputClassName?: string
   options?: Array<{ value: string | number; label: string }>
+  /**
+   * Label for the leading empty option of a `select`. When omitted no empty
+   * option is rendered, which is the right choice for selects that always have
+   * a value (e.g. a defaulted priority).
+   */
+  emptyOptionLabel?: string
   rows?: number
   helpText?: string
   /** Allow callers to provide a custom input element as children */
@@ -41,6 +47,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
       className,
       inputClassName,
       options = [],
+      emptyOptionLabel,
       rows = 4,
       helpText,
       children,
@@ -83,7 +90,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
               inputClassName
             )}
           >
-            <option value="">Select {label}</option>
+            {emptyOptionLabel && <option value="">{emptyOptionLabel}</option>}
             {options.map((option) => (
               <option key={String(option.value)} value={option.value}>
                 {option.label ?? String(option.value)}

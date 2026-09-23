@@ -1,20 +1,28 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, MapPin, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { type AddressData, addressesApi } from '@/api/addresses'
 import { AddressModal } from '@/components/account/AddressModal'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { QueryErrorState } from '@/components/ui/query-error'
 import { useToast } from '@/components/ui/Toaster'
 import { isApiError } from '@/lib/api-response'
 
 export default function AddressesPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { success: showSuccess, error: showError } = useToast()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<AddressData | null>(null)
 
-  const { data: addresses = [], isLoading } = useQuery({
+  const {
+    data: addresses = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ['account-addresses'],
     queryFn: () => addressesApi.list(),
     staleTime: 30 * 1000,
@@ -32,24 +40,25 @@ export default function AddressesPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['account-addresses'] })
 
   const handleDelete = async (address: AddressData) => {
-    if (!confirm(`Delete address "${address.label || address.address_line_1 || 'this address'}"?`))
-      return
+    const name =
+      address.label || address.address_line_1 || t('account.addresses_delete_confirm_fallback')
+    if (!confirm(t('account.addresses_delete_confirm', { name }))) return
     try {
       await addressesApi.remove(address.uuid)
-      showSuccess('Address deleted')
+      showSuccess(t('account.addresses_deleted'))
       invalidate()
     } catch (e) {
-      showError(isApiError(e) ? e.message : 'Failed to delete address')
+      showError(isApiError(e) ? e.message : t('account.addresses_delete_failed'))
     }
   }
 
   const handleSetPrimary = async (address: AddressData) => {
     try {
       await addressesApi.setPrimary(address.uuid)
-      showSuccess('Primary address updated')
+      showSuccess(t('account.addresses_primary_updated'))
       invalidate()
     } catch (e) {
-      showError(isApiError(e) ? e.message : 'Failed to update primary address')
+      showError(isApiError(e) ? e.message : t('account.addresses_primary_failed'))
     }
   }
 
@@ -59,26 +68,30 @@ export default function AddressesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">My Addresses</h1>
+          <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+            {t('account.addresses_title')}
+          </h1>
           <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-            Manage the addresses you use for shipping and billing.
+            {t('account.addresses_subtitle')}
           </p>
         </div>
         <Button onClick={openAdd} className="inline-flex items-center gap-2">
-          <Plus className="h-4 w-4" /> Add Address
+          <Plus className="h-4 w-4" /> {t('account.addresses_add')}
         </Button>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState title={t('account.addresses_error')} onRetry={() => void refetch()} />
+      ) : isLoading ? (
         <div className="flex justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
         </div>
       ) : addresses.length === 0 ? (
         <EmptyState
           icon={MapPin}
-          title="No addresses yet"
-          description="Add an address to speed up checkout."
-          action={{ label: 'Add your first address', onClick: openAdd }}
+          title={t('account.addresses_empty_title')}
+          description={t('account.addresses_empty_body')}
+          action={{ label: t('account.addresses_empty_cta'), onClick: openAdd }}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -91,11 +104,11 @@ export default function AddressesPage() {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 shrink-0 text-blue-500" />
                   <p className="font-semibold text-gray-900 dark:text-white">
-                    {address.label || 'Address'}
+                    {address.label || t('account.addresses_fallback_label')}
                   </p>
                   {address.is_primary && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 font-medium text-[11px] text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      <Star className="h-3 w-3" /> Primary
+                      <Star className="h-3 w-3" /> {t('account.addresses_primary')}
                     </span>
                   )}
                 </div>
@@ -104,7 +117,7 @@ export default function AddressesPage() {
                     type="button"
                     onClick={() => openEdit(address)}
                     className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600 dark:hover:bg-gray-800"
-                    aria-label="Edit address"
+                    aria-label={t('account.addresses_edit')}
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -112,7 +125,7 @@ export default function AddressesPage() {
                     type="button"
                     onClick={() => handleDelete(address)}
                     className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-red-500 dark:hover:bg-gray-800"
-                    aria-label="Delete address"
+                    aria-label={t('account.addresses_delete')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -140,7 +153,7 @@ export default function AddressesPage() {
                   onClick={() => handleSetPrimary(address)}
                   className="mt-4 font-medium text-blue-600 text-sm hover:underline dark:text-blue-400"
                 >
-                  Set as primary
+                  {t('account.addresses_set_primary')}
                 </button>
               )}
             </div>

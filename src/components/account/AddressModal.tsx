@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { type AddressData, type AddressPayload, addressesApi } from '@/api/addresses'
 import { type City, citiesApi } from '@/api/cities'
 import { type Country, countriesApi } from '@/api/countries'
@@ -87,6 +88,7 @@ function toPayload(form: FormState): AddressPayload {
 
 export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
   const { success: showSuccess, error: showError } = useToast()
+  const { t } = useTranslation()
   const [form, setForm] = useState<FormState>(EMPTY)
   const [saving, setSaving] = useState(false)
 
@@ -120,10 +122,10 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
 
       if (address) {
         await addressesApi.update(address.uuid, payload)
-        showSuccess('Address updated')
+        showSuccess(t('account.address_updated'))
       } else {
         await addressesApi.create(payload)
-        showSuccess('Address added')
+        showSuccess(t('account.address_added'))
       }
       onSaved()
       onClose()
@@ -131,7 +133,7 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
       if (isApiError(e) && e.errors) {
         showError(Object.values(e.errors).flat()[0] || e.message)
       } else {
-        showError(isApiError(e) ? e.message : 'Failed to save address')
+        showError(isApiError(e) ? e.message : t('account.address_save_failed'))
       }
     } finally {
       setSaving(false)
@@ -155,35 +157,39 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={address ? 'Edit Address' : 'Add Address'}
+      title={address ? t('account.address_edit_title') : t('account.address_add_title')}
       maxWidth="2xl"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">Label</Label>
+          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+            {t('account.address_label')}
+          </Label>
           <Input
             value={form.label}
             onChange={(e) => set('label', e.target.value)}
-            placeholder="e.g. Home, Office"
+            placeholder={t('account.address_label_placeholder')}
             className="h-10"
           />
         </div>
         <div className="space-y-1.5">
           <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            Contact name <span className="text-red-500">*</span>
+            {t('account.address_contact')} <span className="text-red-500">*</span>
           </Label>
           <Input
             value={form.contact_name}
             onChange={(e) => set('contact_name', e.target.value)}
-            placeholder="Full name"
+            placeholder={t('account.address_contact_placeholder')}
             className="h-10"
             required
           />
         </div>
 
-        {field('Phone', 'phone', 'tel', 'e.g. +92 300 0000000')}
+        {field(t('account.address_phone'), 'phone', 'tel', t('account.address_phone_placeholder'))}
         <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">Country</Label>
+          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+            {t('account.address_country')}
+          </Label>
           <select
             value={form.country_id}
             onChange={(e) => {
@@ -193,7 +199,7 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
             }}
             className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
           >
-            <option value="">Select country</option>
+            <option value="">{t('account.address_select_country')}</option>
             {countries.map((c: Country) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -203,19 +209,26 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
         </div>
 
         <div className="sm:col-span-2">
-          {field('Address line 1', 'address_line_1', 'text', 'Street address, P.O. box')}
+          {field(
+            t('account.address_line1'),
+            'address_line_1',
+            'text',
+            t('account.address_line1_placeholder')
+          )}
         </div>
         <div className="sm:col-span-2">
           {field(
-            'Address line 2 (optional)',
+            t('account.address_line2'),
             'address_line_2',
             'text',
-            'Apartment, suite, unit, building'
+            t('account.address_line2_placeholder')
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">City</Label>
+          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
+            {t('account.address_city')}
+          </Label>
           {form.country_id && cities.length > 0 ? (
             <select
               value={form.city_id}
@@ -226,7 +239,7 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
               }}
               className="h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             >
-              <option value="">Select city</option>
+              <option value="">{t('account.address_select_city')}</option>
               {cities.map((c: City) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -237,23 +250,28 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
             <Input
               value={form.city}
               onChange={(e) => set('city', e.target.value)}
-              placeholder="City"
+              placeholder={t('account.address_city_placeholder')}
               className="h-10"
             />
           )}
         </div>
         <div className="space-y-1.5">
           <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            State / Province
+            {t('account.address_state')}
           </Label>
           <Input
             value={form.state}
             onChange={(e) => set('state', e.target.value)}
-            placeholder="State / Province"
+            placeholder={t('account.address_state_placeholder')}
             className="h-10"
           />
         </div>
-        {field('Postal code', 'postal_code', 'text', 'e.g. 54000')}
+        {field(
+          t('account.address_postal'),
+          'postal_code',
+          'text',
+          t('account.address_postal_placeholder')
+        )}
 
         <label className="flex items-center gap-2 text-gray-700 text-sm sm:pt-6 dark:text-gray-300">
           <input
@@ -262,17 +280,17 @@ export function AddressModal({ isOpen, onClose, address, onSaved }: Props) {
             onChange={(e) => set('is_primary', e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          Set as primary address
+          {t('account.address_primary')}
         </label>
       </div>
 
       <div className="mt-6 flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          Cancel
+          {t('account.address_cancel')}
         </Button>
         <Button onClick={handleSave} disabled={saving}>
-          {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
-          {address ? 'Update' : 'Save'}
+          {saving ? <Loader2 className="me-1.5 h-4 w-4 animate-spin" /> : null}
+          {address ? t('account.address_update') : t('account.address_save')}
         </Button>
       </div>
     </Modal>

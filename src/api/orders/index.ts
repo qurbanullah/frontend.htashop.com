@@ -1,5 +1,6 @@
 import api from '@/api/client'
 import { parseApiResponse } from '@/lib/api-response'
+import { authHeaders } from '@/lib/auth-header'
 import { getCartToken } from '@/lib/cart-token'
 
 export interface OrderItem {
@@ -103,8 +104,8 @@ export const ordersApi = {
   },
 
   async get(uuid: string): Promise<Order> {
-    const res = await api.get(`checkout/orders/${uuid}`, {
-      headers: cartHeaders(),
+    const res = await api.get(`checkout/orders/${encodeURIComponent(uuid)}`, {
+      headers: { ...cartHeaders(), ...authHeaders() },
       throwHttpErrors: false,
     })
     const body = await parseApiResponse<Order>(res)

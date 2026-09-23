@@ -1,4 +1,6 @@
 import { LegalLayout } from '@/components/legal/LegalLayout'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
+import { paths } from '@/routes/paths'
 
 const SECTIONS = [
   {
@@ -22,7 +24,7 @@ const SECTIONS = [
       'Authentication and session cookies — keep you signed in and maintain your cart session (e.g., a cart token stored in your browser).',
       'Preference cookies — store settings like your chosen currency and category navigation preferences.',
       'Analytics cookies — provided by third-party analytics services to measure traffic and usage patterns in aggregate.',
-      'Payment-related cookies — set by our payment partners (e.g., Safepay, JazzCash, Easypaisa, Upaisa) when you use online payment methods, subject to their own policies.',
+      'Payment-related cookies — set by our payment partners (e.g., Safepay, JazzCash, Easypaisa, UPaisa) when you use online payment methods, subject to their own policies.',
     ],
   },
   {
@@ -54,7 +56,7 @@ const SECTIONS = [
   },
   {
     heading: '8. Contact',
-    body: 'If you have questions about our use of cookies, contact us at privacy@htashop.com or support@htashop.com.',
+    body: `If you have questions about our use of cookies, contact us at ${COMPANY.privacyEmail} or ${COMPANY.email}, or write to ${COMPANY.name}, ${COMPANY_ADDRESS_LINE}.`,
   },
 ]
 
@@ -63,6 +65,7 @@ export default function CookiesPolicyPage() {
     <LegalLayout
       title="Cookies Policy"
       description="How HTAShop uses cookies and similar technologies to keep the platform secure and improve your experience."
+      canonical={paths.policiesCookies}
       updated="August 22, 2026"
       sections={SECTIONS}
     />

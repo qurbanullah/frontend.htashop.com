@@ -1,0 +1,22 @@
+{
+  "title": "Support-Assistent",
+  "subtitle": "Antworten aus unserem Hilfe-Center",
+  "launcher_label": "Support-Assistent öffnen",
+  "close": "Schließen",
+  "new_conversation": "Neues Gespräch",
+  "greeting": "Hallo! Fragen Sie mich zu Bestellungen, Versand, Rückgaben oder allem anderen rund um HTAShop.",
+  "placeholder": "Stellen Sie eine Frage …",
+  "send": "Senden",
+  "stop": "Stopp",
+  "thinking": "Denkt nach …",
+  "working": "Einen Moment …",
+  "you": "Sie",
+  "assistant": "Assistent",
+  "rating_helpful": "Das hat meine Frage beantwortet",
+  "rating_unhelpful": "Das hat nicht geholfen",
+  "thanks_feedback": "Danke für Ihr Feedback",
+  "sources": "Quellen",
+  "error_generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+  "error_unavailable": "Der Assistent ist derzeit nicht verfügbar. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.",
+  "disclaimer": "Die Antworten basieren auf unserem Hilfe-Center. Bei kontobezogenen Anliegen erstellen wir ein Support-Ticket."
+}

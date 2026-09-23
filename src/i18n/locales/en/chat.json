@@ -1,0 +1,22 @@
+{
+  "title": "Support assistant",
+  "subtitle": "Answers from our help centre",
+  "launcher_label": "Open support assistant",
+  "close": "Close",
+  "new_conversation": "New conversation",
+  "greeting": "Hi! Ask me about orders, shipping, returns, or anything else about HTAShop.",
+  "placeholder": "Ask a question…",
+  "send": "Send",
+  "stop": "Stop",
+  "thinking": "Thinking…",
+  "working": "One moment…",
+  "you": "You",
+  "assistant": "Assistant",
+  "rating_helpful": "This answered my question",
+  "rating_unhelpful": "This did not help",
+  "thanks_feedback": "Thanks for the feedback",
+  "sources": "Sources",
+  "error_generic": "Something went wrong. Please try again.",
+  "error_unavailable": "The assistant is unavailable right now. Please try again or contact support.",
+  "disclaimer": "Answers come from our help centre. For account-specific help we will raise a support ticket."
+}

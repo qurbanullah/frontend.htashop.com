@@ -1,19 +1,20 @@
 import { CalendarDays, FileText } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { PostSummary } from '@/api/posts'
-import { paths } from '@/routes/paths'
+import { buildSrcset, POST_IMAGE_LADDER, preferUrl } from '@/lib/image-srcset'
+import { FALLBACK_POST_SECTION, POST_SECTION_BY_TYPE } from '@/lib/post-sections'
 
 export function postPath(type: string, slug: string): string {
-  if (type === 'news') return `${paths.news}/${slug}`
-  if (type === 'event') return `${paths.events}/${slug}`
-  return `${paths.blogs}/${slug}`
+  const section = POST_SECTION_BY_TYPE[type] ?? FALLBACK_POST_SECTION
+  return `${section.path}/${slug}`
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string): string {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -21,17 +22,25 @@ function formatDate(value: string | null): string {
 }
 
 export function PostCard({ item }: { item: PostSummary }) {
+  const { i18n } = useTranslation()
   const href = postPath(item.type, item.slug)
+  const srcset = buildSrcset(item.featured_image_urls, POST_IMAGE_LADDER)
+  const imgSrc =
+    preferUrl(item.featured_image_urls, ['medium', 'small', 'large', 'original']) ??
+    item.featured_image_url
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
       <Link to={href} className="block">
-        <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
-          {item.featured_image_url ? (
+        <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 sm:aspect-video dark:from-gray-800 dark:to-gray-900">
+          {imgSrc ? (
             <img
-              src={item.featured_image_url}
+              src={imgSrc}
+              srcSet={srcset}
+              sizes="(max-width: 640px) 92vw, (max-width: 1024px) 47vw, 390px"
               alt={item.title}
               loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
@@ -52,7 +61,7 @@ export function PostCard({ item }: { item: PostSummary }) {
           {item.date && (
             <span className="inline-flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />
-              {formatDate(item.date)}
+              {formatDate(item.date, i18n.language)}
             </span>
           )}
         </div>

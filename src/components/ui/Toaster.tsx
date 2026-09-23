@@ -1,5 +1,5 @@
 import { AnimatePresence } from 'framer-motion'
-import { createContext, type ReactNode, useCallback, useContext, useState } from 'react'
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Toast, type ToastType } from './Toast'
 
@@ -65,25 +65,17 @@ export function ToasterProvider({ children }: ToasterProviderProps) {
     })
   }, [])
 
-  const value: ToasterContextValue = {
-    showToast,
-    success: useCallback(
-      (message, description) => showToast({ type: 'success', message, description }),
-      [showToast]
-    ),
-    error: useCallback(
-      (message, description) => showToast({ type: 'error', message, description }),
-      [showToast]
-    ),
-    warning: useCallback(
-      (message, description) => showToast({ type: 'warning', message, description }),
-      [showToast]
-    ),
-    info: useCallback(
-      (message, description) => showToast({ type: 'info', message, description }),
-      [showToast]
-    ),
-  }
+  // Memoised so consumers only re-render when the handlers actually change.
+  const value = useMemo<ToasterContextValue>(
+    () => ({
+      showToast,
+      success: (message, description) => showToast({ type: 'success', message, description }),
+      error: (message, description) => showToast({ type: 'error', message, description }),
+      warning: (message, description) => showToast({ type: 'warning', message, description }),
+      info: (message, description) => showToast({ type: 'info', message, description }),
+    }),
+    [showToast]
+  )
 
   return (
     <ToasterContext.Provider value={value}>
@@ -91,7 +83,7 @@ export function ToasterProvider({ children }: ToasterProviderProps) {
       {createPortal(
         <div
           data-toast-portal
-          className="pointer-events-none fixed top-4 right-4 z-99999 flex w-full max-w-sm flex-col gap-3"
+          className="pointer-events-none fixed end-4 top-4 z-99999 flex w-full max-w-sm flex-col gap-3"
         >
           <div className="pointer-events-auto flex flex-col gap-3">
             <AnimatePresence mode="popLayout">

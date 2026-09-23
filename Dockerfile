@@ -1,4 +1,4 @@
-# Frontend Dockerfile for HTAShop Manage
+# Frontend Dockerfile for HTAShop Storefront
 FROM node:24-alpine AS builder
 
 # Set working directory
@@ -45,11 +45,12 @@ RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html
 
-# Add healthcheck (targets the internal port 23050)
+# Add healthcheck (targets the internal port 23050). nginx:alpine ships wget,
+# not curl, so use wget for the probe.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:23050/health || exit 1
+    CMD wget -q -O /dev/null http://localhost:23050/health || exit 1
 
-# Expose internal port for manage
+# Expose internal port for the storefront
 EXPOSE 23050
 
 # Start nginx directly (no entrypoint needed — CSP nonce is static)

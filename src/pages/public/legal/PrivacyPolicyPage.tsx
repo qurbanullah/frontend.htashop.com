@@ -1,9 +1,11 @@
 import { LegalLayout } from '@/components/legal/LegalLayout'
+import { COMPANY, COMPANY_ADDRESS_LINE } from '@/lib/company'
+import { paths } from '@/routes/paths'
 
 const SECTIONS = [
   {
     heading: '1. Introduction',
-    body: 'HTAShop ("we", "us", "our") is an e-commerce platform operated by High Tech Advancement Solutions (Private) Limited, CUIN 0321375, Pakistan. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you visit our website, create an account, browse products, place orders, or interact with our services. By using HTAShop, you agree to the practices described in this policy.',
+    body: `HTAShop ("we", "us", "our") is an e-commerce platform operated by ${COMPANY.name}, CUIN ${COMPANY.cuin}, ${COMPANY_ADDRESS_LINE}. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal information when you visit our website, create an account, browse products, place orders, or interact with our services. By using HTAShop, you agree to the practices described in this policy.`,
   },
   {
     heading: '2. Information We Collect',
@@ -11,7 +13,7 @@ const SECTIONS = [
     bullets: [
       'Account information — name, email address, phone number, password (stored securely as a hash), and profile photo.',
       'Order information — billing and shipping addresses, order history, items purchased, amounts, and payment status.',
-      'Payment information — we do NOT store full card numbers. Payment details are collected and processed by our PCI-DSS compliant payment partners (such as Safepay, JazzCash, Easypaisa, Upaisa, or Cash on Delivery). We may receive payment status, the last four digits, and a transaction reference.',
+      'Payment information — we do NOT store full card numbers. Payment details are collected and processed by our PCI-DSS compliant payment partners (such as Safepay, JazzCash, Easypaisa, or UPaisa). Cash on Delivery orders are settled in cash on delivery. We may receive payment status, the last four digits, and a transaction reference.',
       'Communication — messages you send to our support team, review content you post, and responses to surveys.',
       'Technical data — IP address, device and browser type, operating system, referring URLs, pages visited, and timestamps.',
       'Cookies and similar technologies — see our Cookies Policy for details.',
@@ -43,7 +45,7 @@ const SECTIONS = [
     heading: '5. How We Share Your Information',
     body: 'We never sell your personal information. We share data only with trusted parties necessary to operate the platform:',
     bullets: [
-      'Payment processors (Safepay, JazzCash, Easypaisa, Upaisa) — to authorise and settle your transactions under their own privacy and security standards.',
+      'Payment processors (Safepay, JazzCash, Easypaisa, UPaisa) — to authorise and settle your transactions under their own privacy and security standards.',
       'Logistics and delivery partners — name, address, and phone number needed to deliver your order.',
       'IT and hosting providers — infrastructure that stores data on our behalf under contractual safeguards.',
       'Professional advisers — legal, accounting, and audit services where required.',
@@ -107,9 +109,10 @@ const SECTIONS = [
     heading: '14. Contact Us',
     body: 'For questions or concerns about this Privacy Policy or our data practices, contact our Data Protection team:',
     bullets: [
-      'Email: privacy@htashop.com',
-      'Support: support@htashop.com',
-      'High Tech Advancement Solutions (Private) Limited, Pakistan — CUIN 0321375',
+      `Email: ${COMPANY.privacyEmail}`,
+      `Support: ${COMPANY.email}`,
+      `Phone: ${COMPANY.phoneDisplay}`,
+      `${COMPANY.name}, ${COMPANY_ADDRESS_LINE} — CUIN ${COMPANY.cuin}`,
     ],
   },
 ]
@@ -119,6 +122,7 @@ export default function PrivacyPolicyPage() {
     <LegalLayout
       title="Privacy Policy"
       description="How HTAShop collects, uses, protects, and shares your personal information."
+      canonical={paths.policiesPrivacy}
       updated="August 22, 2026"
       sections={SECTIONS}
     />

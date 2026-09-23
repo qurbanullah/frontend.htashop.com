@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Package, ZoomIn, ZoomOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Modal } from '@/components/ui/modal'
 
 const MIN_SCALE = 1
@@ -23,6 +24,7 @@ export function ProductImageModal({
   initialIndex,
   title,
 }: ProductImageModalProps) {
+  const { t } = useTranslation()
   const [index, setIndex] = useState(initialIndex)
   const [scale, setScale] = useState(1)
 
@@ -77,7 +79,7 @@ export function ProductImageModal({
               type="button"
               onClick={() => selectImage((safeIndex - 1 + images.length) % images.length)}
               className="absolute top-1/2 left-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-              aria-label="Previous image"
+              aria-label={t('catalog.previous_image')}
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -85,7 +87,7 @@ export function ProductImageModal({
               type="button"
               onClick={() => selectImage((safeIndex + 1) % images.length)}
               className="absolute top-1/2 right-3 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
-              aria-label="Next image"
+              aria-label={t('catalog.next_image')}
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -100,7 +102,7 @@ export function ProductImageModal({
               onClick={zoomOut}
               disabled={scale <= MIN_SCALE}
               className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Zoom out"
+              aria-label={t('catalog.zoom_out')}
             >
               <ZoomOut className="h-4 w-4" />
             </button>
@@ -116,7 +118,7 @@ export function ProductImageModal({
               onClick={zoomIn}
               disabled={scale >= MAX_SCALE}
               className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Zoom in"
+              aria-label={t('catalog.zoom_in')}
             >
               <ZoomIn className="h-4 w-4" />
             </button>

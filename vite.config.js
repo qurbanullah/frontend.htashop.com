@@ -86,5 +86,4 @@ export default defineConfig({
     },
 
     base: "/",
-    sourcemap: process.env.NODE_ENV === "development",
 });

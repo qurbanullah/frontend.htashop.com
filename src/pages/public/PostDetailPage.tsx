@@ -1,20 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
+import DOMPurify from 'dompurify'
 import { ArrowLeft, CalendarDays, FileText, Loader2, Tag } from 'lucide-react'
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { postsApi } from '@/api/posts'
 import { Seo } from '@/components/seo/Seo'
+import { buildSrcset, POST_IMAGE_LADDER, preferUrl } from '@/lib/image-srcset'
+import { FALLBACK_POST_SECTION, POST_SECTION_BY_TYPE } from '@/lib/post-sections'
 
-const LIST_PATHS: Record<string, { to: string; label: string }> = {
-  blog: { to: '/blogs', label: 'Blog' },
-  news: { to: '/news', label: 'News' },
-  event: { to: '/events', label: 'Events' },
-}
-
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string): string {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -22,6 +21,7 @@ function formatDate(value: string | null): string {
 }
 
 export default function PostDetailPage() {
+  const { t, i18n } = useTranslation()
   const { slug = '' } = useParams()
   const { data: post, isLoading } = useQuery({
     queryKey: ['post', slug],
@@ -29,6 +29,14 @@ export default function PostDetailPage() {
     enabled: Boolean(slug),
     retry: false,
   })
+
+  // CMS HTML is authored by staff but is still sanitised before it is injected
+  // with dangerouslySetInnerHTML below, so a compromised editor account cannot
+  // plant stored XSS in the storefront session.
+  const safeContent = useMemo(
+    () => (post?.content ? DOMPurify.sanitize(post.content, { USE_PROFILES: { html: true } }) : ''),
+    [post?.content]
+  )
 
   if (isLoading) {
     return (
@@ -41,40 +49,50 @@ export default function PostDetailPage() {
   if (!post) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-28 text-center sm:px-6 lg:px-8">
+        <Seo title={t('post_detail.not_found_title')} noindex />
         <FileText className="mx-auto mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
-        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Content not found</h1>
+        <h1 className="font-bold text-2xl text-gray-900 dark:text-white">
+          {t('post_detail.not_found_title')}
+        </h1>
         <p className="mt-2 text-gray-500 text-sm dark:text-gray-400">
-          This page may have been removed or is not published yet.
+          {t('post_detail.not_found_body')}
         </p>
         <Link
           to="/"
           className="mt-6 inline-flex items-center gap-1 font-medium text-blue-600 text-sm hover:text-blue-700 dark:text-blue-400"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to home
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('post_detail.back_home')}
         </Link>
       </div>
     )
   }
 
-  const listInfo = LIST_PATHS[post.type] ?? { to: '/', label: 'Home' }
-  const publishedDate = formatDate(post.published_at ?? post.date)
+  const section = POST_SECTION_BY_TYPE[post.type]
+  const canonicalPath = `${section?.path ?? FALLBACK_POST_SECTION.path}/${post.slug}`
+  const backLink = section
+    ? { to: section.path, label: t(section.titleKey) }
+    : { to: '/', label: t('breadcrumb.home') }
+  const publishedDate = formatDate(post.published_at ?? post.date, i18n.language)
+  const headerSrcset = buildSrcset(post.featured_image_urls, POST_IMAGE_LADDER)
+  const headerSrc =
+    preferUrl(post.featured_image_urls, ['large', 'medium', 'original']) ?? post.featured_image_url
 
   return (
     <>
       <Seo
-        title={`${post.title} — HTAShop`}
+        title={post.title}
         description={post.excerpt ?? post.description ?? post.title}
         keywords={[...post.tags, ...post.categories, 'HTAShop'].filter(Boolean)}
-        canonical={`${listInfo.to}/${post.slug}`}
+        canonical={canonicalPath}
         type="article"
       />
 
       <article className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <Link
-          to={listInfo.to}
+          to={backLink.to}
           className="inline-flex items-center gap-1 text-gray-500 text-sm hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
         >
-          <ArrowLeft className="h-4 w-4" /> All {listInfo.label}
+          <ArrowLeft className="h-4 w-4" /> All {backLink.label}
         </Link>
 
         <header className="mt-6">
@@ -99,18 +117,22 @@ export default function PostDetailPage() {
           )}
         </header>
 
-        {post.featured_image_url && (
+        {headerSrc && (
           <img
-            src={post.featured_image_url}
+            src={headerSrc}
+            srcSet={headerSrcset}
+            sizes="(max-width: 768px) 100vw, 736px"
             alt={post.title}
+            fetchPriority="high"
+            decoding="async"
             className="mt-8 h-64 w-full rounded-2xl object-cover sm:h-80"
           />
         )}
 
         <div
           className="prose prose-gray dark:prose-invert mt-8 max-w-none"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: admin-authored HTML content from the CMS
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised with DOMPurify above
+          dangerouslySetInnerHTML={{ __html: safeContent }}
         />
 
         {post.tags.length > 0 && (

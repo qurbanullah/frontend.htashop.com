@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { isRtlDocument } from '@/lib/rtl'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -42,10 +44,19 @@ const VARIANTS: Record<ToastType, VariantConfig> = {
 
 // ── Animation variants ──
 
-const slideIn = {
-  hidden: { opacity: 0, x: 80, scale: 0.95 },
-  visible: { opacity: 1, x: 0, scale: 1 },
-  exit: { opacity: 0, x: 80, scale: 0.95, transition: { duration: 0.2 } },
+const SLIDE_DISTANCE = 80
+
+/**
+ * Slide in from the edge the toaster is anchored to. In RTL the toaster sits at
+ * the inline-end (visually the left), so the entry offset has to flip too.
+ */
+function slideInFrom(rtl: boolean) {
+  const x = rtl ? -SLIDE_DISTANCE : SLIDE_DISTANCE
+  return {
+    hidden: { opacity: 0, x, scale: 0.95 },
+    visible: { opacity: 1, x: 0, scale: 1 },
+    exit: { opacity: 0, x, scale: 0.95, transition: { duration: 0.2 } },
+  }
 }
 
 // ── Props ──
@@ -60,11 +71,13 @@ export interface ToastProps {
 }
 
 export function Toast({ id, type, message, description, duration = 5000, onClose }: ToastProps) {
+  const { t } = useTranslation()
   const timerRef = useRef<number | null>(null)
   const remainingRef = useRef(duration)
 
   const variant = VARIANTS[type]
   const Icon = variant.icon
+  const variants = slideInFrom(isRtlDocument())
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -97,7 +110,7 @@ export function Toast({ id, type, message, description, duration = 5000, onClose
   return (
     <motion.div
       layout
-      variants={slideIn}
+      variants={variants}
       initial="hidden"
       animate="visible"
       exit="exit"
@@ -118,7 +131,7 @@ export function Toast({ id, type, message, description, duration = 5000, onClose
         type="button"
         onClick={() => onClose(id)}
         className="shrink-0 rounded p-0.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
-        aria-label="Dismiss notification"
+        aria-label={t('common.dismiss_notification')}
       >
         <X className="h-4 w-4" />
       </button>

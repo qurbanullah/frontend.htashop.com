@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Banknote, ChevronRight, Loader2, MapPin, Package, ShoppingCart, Truck } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { type AddressData, addressesApi } from '@/api/addresses'
 import { ordersApi } from '@/api/orders'
@@ -9,16 +10,12 @@ import {
   type AddressFormValue,
   EMPTY_ADDRESS,
 } from '@/components/checkout/AddressFields'
+import { Seo } from '@/components/seo/Seo'
 import { isApiError } from '@/lib/api-response'
+import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-
-function formatMoney(value: number | string | null | undefined, currency?: string | null) {
-  const num = Number(value)
-  if (!Number.isFinite(num)) return '—'
-  return `${currency ?? 'USD'} ${num.toLocaleString()}`
-}
 
 function addressToForm(address: AddressData): AddressFormValue {
   return {
@@ -35,6 +32,7 @@ function addressToForm(address: AddressData): AddressFormValue {
 }
 
 export default function CheckoutPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { items, subtotal, currency, isLoading, sync, clear } = useCartStore()
   const user = useAuthStore((s) => s.user)
@@ -73,13 +71,11 @@ export default function CheckoutPage() {
     setError(null)
 
     if (!shipping.contact_name.trim() || !shipping.address_line_1.trim() || !shipping.country_id) {
-      setError(
-        'Please complete the shipping address (contact name, address line 1 and country are required).'
-      )
+      setError(t('checkout.error_address'))
       return
     }
     if (!shipping.city.trim()) {
-      setError('Please enter a city for the shipping address.')
+      setError(t('checkout.error_city'))
       return
     }
 
@@ -131,7 +127,7 @@ export default function CheckoutPage() {
       } else if (e instanceof Error) {
         setError(e.message)
       } else {
-        setError('Failed to place order. Please try again.')
+        setError(t('checkout.error_generic'))
       }
     } finally {
       setPlacing(false)
@@ -141,18 +137,17 @@ export default function CheckoutPage() {
   if (items.length === 0 && !isLoading) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col items-center justify-center px-4 py-24 text-center">
+        <Seo title={t('checkout.title')} noindex />
         <ShoppingCart className="h-12 w-12 text-gray-300 dark:text-gray-600" />
         <h1 className="mt-4 font-semibold text-gray-900 text-lg dark:text-white">
-          Your cart is empty
+          {t('checkout.empty_title')}
         </h1>
-        <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-          Add some products before checking out.
-        </p>
+        <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">{t('checkout.empty_body')}</p>
         <Link
           to={paths.products}
           className="mt-6 font-medium text-blue-600 text-sm hover:underline dark:text-blue-400"
         >
-          Browse products
+          {t('checkout.browse')}
         </Link>
       </div>
     )
@@ -160,22 +155,23 @@ export default function CheckoutPage() {
 
   return (
     <div className="shell-narrow mx-auto px-4 py-8 sm:px-6 lg:px-8">
+      <Seo title={t('checkout.title')} noindex />
       <nav
         className="mb-6 flex flex-wrap items-center gap-1 text-gray-500 text-sm dark:text-gray-400"
-        aria-label="Breadcrumb"
+        aria-label={t('breadcrumb.label')}
       >
         <Link to={paths.home} className="hover:text-gray-900 dark:hover:text-white">
-          Home
+          {t('breadcrumb.home')}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
+        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
         <Link to={paths.products} className="hover:text-gray-900 dark:hover:text-white">
-          Products
+          {t('breadcrumb.products')}
         </Link>
-        <ChevronRight className="h-3.5 w-3.5" />
-        <span className="text-gray-700 dark:text-gray-300">Checkout</span>
+        <ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" />
+        <span className="text-gray-700 dark:text-gray-300">{t('breadcrumb.checkout')}</span>
       </nav>
 
-      <h1 className="font-bold text-2xl text-gray-900 dark:text-white">Checkout</h1>
+      <h1 className="font-bold text-2xl text-gray-900 dark:text-white">{t('checkout.title')}</h1>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-12">
         {/* Left: details */}
@@ -185,7 +181,7 @@ export default function CheckoutPage() {
             {isAuthenticated && savedAddresses.length > 0 && (
               <div className="mb-4">
                 <h3 className="mb-2 font-semibold text-gray-900 text-sm dark:text-white">
-                  Saved addresses
+                  {t('checkout.saved_addresses')}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {savedAddresses.map((address) => (
@@ -207,7 +203,11 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <AddressFields value={shipping} onChange={setShipping} title="Shipping address" />
+            <AddressFields
+              value={shipping}
+              onChange={setShipping}
+              title={t('checkout.shipping_address')}
+            />
           </div>
 
           {/* Billing */}
@@ -220,19 +220,25 @@ export default function CheckoutPage() {
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="font-semibold text-gray-900 text-sm dark:text-white">
-                Billing address same as shipping
+                {t('checkout.billing_same')}
               </span>
             </label>
             {!billingSame && (
               <div className="mt-4">
-                <AddressFields value={billing} onChange={setBilling} title="Billing address" />
+                <AddressFields
+                  value={billing}
+                  onChange={setBilling}
+                  title={t('checkout.billing_address')}
+                />
               </div>
             )}
           </div>
 
           {/* Payment */}
           <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-            <h3 className="font-semibold text-gray-900 text-sm dark:text-white">Payment method</h3>
+            <h3 className="font-semibold text-gray-900 text-sm dark:text-white">
+              {t('checkout.payment_method')}
+            </h3>
             <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-800 dark:bg-blue-950/20">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
@@ -240,11 +246,10 @@ export default function CheckoutPage() {
                 </span>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm dark:text-white">
-                    Cash on Delivery
+                    {t('checkout.cod')}
                   </p>
                   <p className="text-gray-500 text-xs dark:text-gray-400">
-                    Pay in cash when your order is delivered. Online payment (JazzCash, EasyPaisa,
-                    UPaisa, Safepay) coming soon.
+                    {t('checkout.cod_description')}
                   </p>
                 </div>
               </div>
@@ -257,14 +262,14 @@ export default function CheckoutPage() {
               htmlFor="order-notes"
               className="font-semibold text-gray-900 text-sm dark:text-white"
             >
-              Order notes (optional)
+              {t('checkout.notes_label')}
             </label>
             <textarea
               id="order-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Delivery instructions, gate codes, etc."
+              placeholder={t('checkout.notes_placeholder')}
               className="mt-2 w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
             />
           </div>
@@ -273,7 +278,9 @@ export default function CheckoutPage() {
         {/* Right: summary */}
         <div className="lg:col-span-4">
           <div className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800">
-            <h3 className="font-semibold text-gray-900 text-sm dark:text-white">Order summary</h3>
+            <h3 className="font-semibold text-gray-900 text-sm dark:text-white">
+              {t('checkout.order_summary')}
+            </h3>
             <div className="mt-3 space-y-3">
               {items.map((item) => (
                 <div key={item.uuid} className="flex items-center gap-3">
@@ -294,7 +301,9 @@ export default function CheckoutPage() {
                     <p className="truncate font-medium text-gray-900 text-sm dark:text-white">
                       {item.name}
                     </p>
-                    <p className="text-gray-500 text-xs dark:text-gray-400">Qty: {item.quantity}</p>
+                    <p className="text-gray-500 text-xs dark:text-gray-400">
+                      {t('checkout.qty', { count: item.quantity })}
+                    </p>
                   </div>
                   <span className="font-medium text-gray-900 text-sm dark:text-white">
                     {formatMoney(item.unit_price * item.quantity, currency)}
@@ -305,17 +314,17 @@ export default function CheckoutPage() {
 
             <div className="mt-4 space-y-2 border-gray-100 border-t pt-4 text-sm dark:border-gray-800">
               <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <span>Subtotal</span>
+                <span>{t('summary.subtotal')}</span>
                 <span className="font-medium text-gray-900 dark:text-white">
                   {formatMoney(subtotal, currency)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <span>Shipping</span>
-                <span>Calculated at delivery</span>
+                <span>{t('summary.shipping')}</span>
+                <span>{t('summary.shipping_at_delivery')}</span>
               </div>
               <div className="flex items-center justify-between border-gray-100 border-t pt-2 font-bold text-base text-gray-900 dark:border-gray-800 dark:text-white">
-                <span>Total</span>
+                <span>{t('summary.total')}</span>
                 <span>{formatMoney(subtotal, currency)}</span>
               </div>
             </div>
@@ -337,11 +346,9 @@ export default function CheckoutPage() {
               ) : (
                 <Truck className="h-4 w-4" />
               )}
-              {placing ? 'Placing order…' : 'Place Order (Cash on Delivery)'}
+              {placing ? t('checkout.placing') : t('checkout.place_order')}
             </button>
-            <p className="mt-2 text-center text-gray-400 text-xs">
-              By placing your order you agree to our terms & conditions.
-            </p>
+            <p className="mt-2 text-center text-gray-400 text-xs">{t('checkout.terms_notice')}</p>
           </div>
         </div>
       </div>

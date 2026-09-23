@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { cdnUrl } from '@/lib/cdn'
+import { ENV_CONFIG } from '@/lib/env'
 
-export const SITE_NAME = 'HTAShop'
-export const SITE_URL = 'https://htashop.com'
+export const SITE_NAME = ENV_CONFIG.SITE_NAME
+/** Canonical site origin — mirrors the API's FRONTEND_URL via VITE_SITE_URL. */
+export const SITE_URL = ENV_CONFIG.SITE_URL
 
 /** Marker used to identify tags managed by this component so they can be cleaned up. */
 const MARKER = 'data-seo'
@@ -55,15 +58,26 @@ function upsertLink(rel: string, href: string) {
   el.setAttribute('href', href)
 }
 
+/**
+ * Returns the CSP nonce injected by nginx (via a <meta name="csp-nonce"> tag),
+ * or null when there is no CSP/nonce (e.g. local development).
+ */
+function getCspNonce(): string | null {
+  const meta = document.head.querySelector<HTMLMetaElement>('meta[name="csp-nonce"]')
+  return meta?.content || null
+}
+
 function setJsonLd(data: SeoJsonLd | SeoJsonLd[]) {
   document.querySelectorAll(`script[${MARKER}="jsonld"]`).forEach((el) => {
     el.remove()
   })
+  const nonce = getCspNonce()
   const blocks = Array.isArray(data) ? data : [data]
   for (const block of blocks) {
     const script = document.createElement('script')
     script.type = 'application/ld+json'
     script.setAttribute(MARKER, 'jsonld')
+    if (nonce) script.setAttribute('nonce', nonce)
     script.textContent = JSON.stringify(block)
     document.head.appendChild(script)
   }
@@ -77,15 +91,15 @@ interface ResolvedSeo {
 
 function resolveSeoValues(props: Omit<SeoProps, 'title'> & { title: string }): ResolvedSeo {
   const resolvedTitle = props.fullTitle ?? `${props.title} | ${SITE_NAME}`
-  const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL
+  // Canonical URLs always use the configured origin, never the host that
+  // happened to serve the request (mirrors, www/apex, the prerender service).
+  const currentPath =
+    typeof window === 'undefined' ? '' : window.location.pathname + window.location.search
   const resolvedCanonical = props.canonical
-    ? `${origin}${props.canonical.startsWith('/') ? props.canonical : `/${props.canonical}`}`
-    : window.location.href
-  const resolvedImage = !props.image
-    ? undefined
-    : props.image.startsWith('http')
-      ? props.image
-      : `https://cdn.htashop.com/${props.image.replace(/^\//, '')}`
+    ? `${SITE_URL}${props.canonical.startsWith('/') ? props.canonical : `/${props.canonical}`}`
+    : `${SITE_URL}${currentPath}`
+  const imageKey = props.image ?? ENV_CONFIG.DEFAULT_OG_IMAGE
+  const resolvedImage = cdnUrl(imageKey) || undefined
 
   return { resolvedTitle, resolvedCanonical, resolvedImage }
 }
@@ -112,7 +126,7 @@ function collectMetaTags(
   ])
   metaTags.push(['property', 'og:title', values.resolvedTitle])
   metaTags.push(['property', 'og:type', props.type])
-  metaTags.push(['property', 'og:url', window.location.href])
+  metaTags.push(['property', 'og:url', values.resolvedCanonical])
   metaTags.push(['property', 'og:site_name', SITE_NAME])
   metaTags.push(['property', 'og:locale', 'en_US'])
   if (values.resolvedImage) metaTags.push(['property', 'og:image', values.resolvedImage])
@@ -185,6 +199,6 @@ export function Seo({
 
 /** Builds an absolute site URL from a path (for JSON-LD / canonical values). */
 export function siteUrl(path = ''): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : SITE_URL
-  return `${origin}${path}`
+  if (!path) return SITE_URL
+  return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`
 }

@@ -60,7 +60,7 @@ export const cartApi = {
   },
 
   async update(itemUuid: string, quantity: number): Promise<CartData> {
-    const res = await api.patch(`cart/items/${itemUuid}`, {
+    const res = await api.patch(`cart/items/${encodeURIComponent(itemUuid)}`, {
       json: { quantity },
       headers: cartHeaders(),
       throwHttpErrors: false,
@@ -70,7 +70,7 @@ export const cartApi = {
   },
 
   async remove(itemUuid: string): Promise<CartData> {
-    const res = await api.delete(`cart/items/${itemUuid}`, {
+    const res = await api.delete(`cart/items/${encodeURIComponent(itemUuid)}`, {
       headers: cartHeaders(),
       throwHttpErrors: false,
     })

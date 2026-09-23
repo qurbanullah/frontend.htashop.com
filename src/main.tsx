@@ -1,14 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './i18n/config' // Initialize i18n
+import { queryClient } from '@/lib/query-client'
+import { useConsentStore } from '@/stores/consent' // Initialize consent store
 import { applyConsent } from './lib/consent/analytics'
 import { validateEnvironment } from './lib/env' // Environment validation
-import { useAuthStore } from './stores/auth' // Initialize auth store
-import { useConsentStore } from './stores/consent' // Initialize consent store
+import { isNativePlatform } from './lib/native'
+import { initNativeApp } from './lib/native-app'
 
 // GDPR: gate all non-essential trackers (Sentry, GA4, Meta Pixel) behind the
 // user's stored consent choice. This runs before first paint; the live
@@ -52,30 +54,13 @@ try {
   throw error
 }
 
-// Initialize auth store
-useAuthStore.getState().initialize()
-
-// Create a query client for React Query
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      refetchOnReconnect: true,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 15 * 60 * 1000, // 15 minutes garbage collection
-    },
-    mutations: {
-      retry: 0, // never retry mutations — avoid duplicate submissions
-    },
-  },
-})
-
-// Simple loading screen removal — overflow-y:scroll on html already reserves scrollbar space
+// Remove the web loading spinner. On native, the splash screen already covers
+// the initial load, so remove the spinner immediately (the splash is hidden in
+// initNativeApp after React mounts).
 const loadingEl = document.getElementById('loading')
-if (loadingEl) {
+if (isNativePlatform()) {
+  loadingEl?.remove()
+} else if (loadingEl) {
   setTimeout(() => {
     loadingEl.style.opacity = '0'
     loadingEl.style.transition = 'opacity 0.2s ease-out'
@@ -85,7 +70,8 @@ if (loadingEl) {
   }, 800)
 }
 
-ReactDOM.createRoot(getRootElement()).render(
+const root = ReactDOM.createRoot(getRootElement())
+root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -94,3 +80,7 @@ ReactDOM.createRoot(getRootElement()).render(
     </QueryClientProvider>
   </React.StrictMode>
 )
+
+// Initialize native-only features (status bar, push, deep links) and hide the
+// native splash screen. No-op when running in a browser.
+void initNativeApp()

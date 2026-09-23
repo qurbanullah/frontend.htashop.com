@@ -1,29 +1,47 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Lock, LogIn, Mail } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import TurnstileWidget from '@/components/auth/TurnstileWidget'
+import { Seo } from '@/components/seo/Seo'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/auth/useAuth'
+import { paths } from '@/routes/paths'
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-})
+type Translate = (key: string) => string
 
-type LoginFormData = z.infer<typeof loginSchema>
+// Built from `t` rather than at module scope so validation messages follow the
+// active language.
+function createLoginSchema(t: Translate) {
+  return z.object({
+    email: z.string().min(1, t('validation.email_required')).email(t('validation.email_invalid')),
+    password: z.string().min(1, t('validation.password_required')),
+  })
+}
+
+type LoginFormData = z.infer<ReturnType<typeof createLoginSchema>>
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { t } = useTranslation('auth')
+
+  // Return the user to the page ProtectedRoute sent them away from (it passes
+  // `state.from`), instead of always dumping them on the account overview.
+  const redirectTo =
+    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? paths.account
   const { login, isLoading, error, validationErrors, clearError, isAuthenticated } = useAuth()
 
   const [showPassword, setShowPassword] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+  const loginSchema = useMemo(() => createLoginSchema(t), [t])
 
   const {
     register,
@@ -42,8 +60,8 @@ export default function Login() {
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/dashboard', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (isAuthenticated) navigate(redirectTo, { replace: true })
+  }, [isAuthenticated, navigate, redirectTo])
 
   useEffect(() => {
     if (!mountedRef.current) return
@@ -58,11 +76,13 @@ export default function Login() {
 
   const onSubmit = (data: LoginFormData) => {
     clearError()
-    login({ ...data, turnstile_token: turnstileToken })
+    login({ ...data, turnstileToken })
   }
 
   return (
     <>
+      <Seo title={t('seo.sign_in')} noindex />
+
       {/* Logo */}
       <div className="mb-8 text-center">
         <Logo width={64} />
@@ -72,7 +92,7 @@ export default function Login() {
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-gray-200/50 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:shadow-none">
         <div className="px-8 py-8">
           <h1 className="mb-6 text-center font-semibold text-gray-900 text-xl dark:text-white">
-            Sign in to your account
+            {t('login.title')}
           </h1>
 
           {error && (
@@ -88,20 +108,24 @@ export default function Login() {
                 htmlFor="email"
                 className="font-medium text-gray-700 text-sm dark:text-gray-300"
               >
-                Email
+                {t('common.email')}
               </Label>
               <div className="relative">
-                <Mail className="absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Mail className="absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('common.email_placeholder')}
                   {...register('email')}
-                  className={`h-11 bg-gray-50 pl-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.email ? 'border-red-500' : ''}`}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby="email-error"
+                  className={`h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.email ? 'border-red-500' : ''}`}
                 />
               </div>
               {errors.email && (
-                <p className="text-red-600 text-sm dark:text-red-400">{errors.email.message}</p>
+                <p id="email-error" role="alert" className="text-red-600 text-sm dark:text-red-400">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -112,35 +136,43 @@ export default function Login() {
                   htmlFor="password"
                   className="font-medium text-gray-700 text-sm dark:text-gray-300"
                 >
-                  Password
+                  {t('common.password')}
                 </Label>
                 <Link
                   to="/forgot-password"
                   className="font-medium text-blue-600 text-xs hover:text-blue-500 dark:text-blue-400"
                 >
-                  Forgot?
+                  {t('login.forgot')}
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute top-1/2 left-3 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Lock className="absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder={t('login.password_placeholder')}
                   {...register('password')}
-                  className={`h-11 bg-gray-50 pr-10 pl-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.password ? 'border-red-500' : ''}`}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby="password-error"
+                  className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.password ? 'border-red-500' : ''}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-3 z-10 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  tabIndex={-1}
+                  aria-label={showPassword ? t('common.hide_password') : t('common.show_password')}
+                  className="absolute end-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-red-600 text-sm dark:text-red-400">{errors.password.message}</p>
+                <p
+                  id="password-error"
+                  role="alert"
+                  className="text-red-600 text-sm dark:text-red-400"
+                >
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -158,12 +190,12 @@ export default function Login() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Signing in…
+                  {t('login.submitting')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
                   <LogIn className="h-4 w-4" />
-                  Sign in
+                  {t('login.submit')}
                 </span>
               )}
             </Button>
@@ -173,12 +205,12 @@ export default function Login() {
 
       {/* Register link */}
       <p className="mt-6 text-center text-gray-500 text-sm dark:text-gray-400">
-        Don&apos;t have an account?{' '}
+        {t('login.no_account')}{' '}
         <Link
           to="/register"
           className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
         >
-          Create one
+          {t('login.create_one')}
         </Link>
       </p>
     </>

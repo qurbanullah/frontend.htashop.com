@@ -1,15 +1,15 @@
 {
-  "id": "com.htasol.htashop.manage",
-  "name": "HTAShop Manage",
+  "id": "com.htashop.storefront",
+  "name": "HTAShop",
   "short_name": "HTAShop",
-  "description": "Product and vendor management portal for HTAShop — enterprise e-commerce with punchout capability.",
+  "description": "HTAShop — shop electronics, IT, MRO and industrial supplies from verified suppliers with secure payments and fast delivery.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "theme_color": "#111827",
   "background_color": "#f9fafb",
-  "categories": ["business", "productivity"],
+  "categories": ["shopping", "business"],
   "icons": [
     {
       "src": "/favicon.svg",

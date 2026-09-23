@@ -1,14 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
 
-function formatMoney(value: number, currency: string) {
-  return `${currency} ${value.toLocaleString()}`
-}
-
 export function CartDrawer() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const items = useCartStore((s) => s.items)
   const count = useCartStore((s) => s.count)
@@ -47,14 +46,14 @@ export function CartDrawer() {
           <div className="flex h-16 items-center justify-between border-gray-200 border-b px-5 dark:border-gray-800">
             <h2 className="flex items-center gap-2 font-semibold text-gray-900 text-lg dark:text-white">
               <ShoppingCart className="h-5 w-5" />
-              Your cart
+              {t('cart.drawer_title')}
               {count > 0 && <span className="font-normal text-gray-400 text-sm">({count})</span>}
             </h2>
             <button
               type="button"
               onClick={closeDrawer}
               className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Close cart"
+              aria-label={t('cart.close')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -65,9 +64,11 @@ export function CartDrawer() {
             {items.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center">
                 <ShoppingCart className="h-12 w-12 text-gray-300 dark:text-gray-600" />
-                <p className="mt-4 font-medium text-gray-900 dark:text-white">Your cart is empty</p>
+                <p className="mt-4 font-medium text-gray-900 dark:text-white">
+                  {t('cart.empty_title')}
+                </p>
                 <p className="mt-1 text-gray-500 text-sm dark:text-gray-400">
-                  Add products to get started.
+                  {t('cart.empty_body')}
                 </p>
               </div>
             ) : (
@@ -107,7 +108,7 @@ export function CartDrawer() {
                           type="button"
                           onClick={() => removeItem(item.uuid)}
                           className="rounded p-1 text-gray-400 hover:text-red-500"
-                          aria-label="Remove item"
+                          aria-label={t('cart.remove_item')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -119,7 +120,7 @@ export function CartDrawer() {
                             type="button"
                             onClick={() => updateItem(item.uuid, Math.max(1, item.quantity - 1))}
                             className="flex h-8 w-8 items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                            aria-label="Decrease quantity"
+                            aria-label={t('cart.decrease_qty')}
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
@@ -130,7 +131,7 @@ export function CartDrawer() {
                             type="button"
                             onClick={() => updateItem(item.uuid, item.quantity + 1)}
                             className="flex h-8 w-8 items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                            aria-label="Increase quantity"
+                            aria-label={t('cart.increase_qty')}
                           >
                             <Plus className="h-3.5 w-3.5" />
                           </button>
@@ -164,7 +165,9 @@ export function CartDrawer() {
           {items.length > 0 && (
             <div className="border-gray-200 border-t px-5 py-4 dark:border-gray-800">
               <div className="mb-4 flex items-center justify-between">
-                <span className="text-gray-500 text-sm dark:text-gray-400">Subtotal</span>
+                <span className="text-gray-500 text-sm dark:text-gray-400">
+                  {t('cart.subtotal')}
+                </span>
                 <span className="font-bold text-gray-900 text-lg dark:text-white">
                   {formatMoney(subtotal, currency)}
                 </span>
@@ -178,11 +181,9 @@ export function CartDrawer() {
                 }}
                 className="flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
               >
-                {isLoading ? 'Updating…' : 'Proceed to checkout'}
+                {isLoading ? t('cart.updating') : t('cart.checkout')}
               </button>
-              <p className="mt-2 text-center text-gray-400 text-xs">
-                Shipping and taxes calculated at checkout.
-              </p>
+              <p className="mt-2 text-center text-gray-400 text-xs">{t('cart.shipping_note')}</p>
             </div>
           )}
         </motion.div>

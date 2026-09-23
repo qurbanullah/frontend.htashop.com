@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronRight, Menu } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { categoriesApi } from '@/api/categories'
 import { paths } from '@/routes/paths'
@@ -7,6 +8,7 @@ import { useCategoryDrawerStore } from '@/stores/category-drawer'
 
 export function CategoryNav() {
   const openCategories = useCategoryDrawerStore((state) => state.open)
+  const { t } = useTranslation()
 
   const { data: categories = [] } = useQuery({
     queryKey: ['top-nav-categories'],
@@ -24,7 +26,7 @@ export function CategoryNav() {
             className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-2.5 font-semibold text-gray-900 text-sm transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-white dark:hover:bg-gray-800 dark:hover:text-white"
           >
             <Menu className="h-4 w-4" />
-            All
+            {t('shell.all')}
           </button>
           <div className="flex">
             {categories.map((category) => (
@@ -34,7 +36,7 @@ export function CategoryNav() {
                 className="flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium text-gray-600 text-sm transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
               >
                 {category.name}
-                <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+                <ChevronRight className="h-3.5 w-3.5 text-gray-400 rtl:rotate-180" />
               </Link>
             ))}
           </div>

@@ -2,11 +2,14 @@ import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
 import deAuth from './locales/de/auth.json'
+import deChat from './locales/de/chat.json'
 import deCommon from './locales/de/common.json'
 import enAuth from './locales/en/auth.json'
 // Import translation files
+import enChat from './locales/en/chat.json'
 import enCommon from './locales/en/common.json'
 import urAuth from './locales/ur/auth.json'
+import urChat from './locales/ur/chat.json'
 import urCommon from './locales/ur/common.json'
 
 // Translation resources
@@ -14,14 +17,17 @@ const resources = {
   en: {
     common: enCommon,
     auth: enAuth,
+    chat: enChat,
   },
   ur: {
     common: urCommon,
     auth: urAuth,
+    chat: urChat,
   },
   de: {
     common: deCommon,
     auth: deAuth,
+    chat: deChat,
   },
 }
 
@@ -37,13 +43,13 @@ i18n
 
     // Namespace configuration
     defaultNS: 'common',
-    ns: ['common', 'auth'],
+    ns: ['common', 'auth', 'chat'],
 
     // Detection options
     detection: {
       order: ['localStorage', 'navigator', 'htmlTag'],
       caches: ['localStorage'],
-      lookupLocalStorage: 'solarlits_language',
+      lookupLocalStorage: 'htashop_language',
     },
 
     interpolation: {
@@ -61,6 +67,25 @@ export default i18n
 export const isRTL = (lng: string): boolean => {
   return lng === 'ur' || lng === 'ar' || lng === 'he' || lng === 'fa'
 }
+
+/**
+ * Keep <html lang> / <html dir> in step with the active language.
+ *
+ * This runs from the i18n instance (not a component) so it applies on every
+ * route — including the auth/legal pages that render no language UI. Without it
+ * an Urdu user (selected by the browser detector) would see RTL text laid out LTR.
+ */
+function syncDocumentLanguage(lng: string): void {
+  if (typeof document === 'undefined') return
+
+  const rtl = isRTL(lng)
+  document.documentElement.setAttribute('lang', lng)
+  document.documentElement.setAttribute('dir', rtl ? 'rtl' : 'ltr')
+  document.body.classList.toggle('rtl', rtl)
+}
+
+i18n.on('languageChanged', syncDocumentLanguage)
+syncDocumentLanguage(i18n.language)
 
 // Helper to get language display name
 export const getLanguageName = (code: string): string => {

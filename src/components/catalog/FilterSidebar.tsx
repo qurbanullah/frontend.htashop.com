@@ -1,17 +1,18 @@
 import { ChevronDown, Search } from 'lucide-react'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Input } from '@/components/ui/input'
 
 const FILTER_PREVIEW_COUNT = 4
 
 /** Preset price buckets used in place of free min/max inputs. */
-const PRICE_RANGES: Array<{ label: string; min: string; max: string }> = [
-  { label: 'Up to 500', min: '', max: '500' },
-  { label: '500 – 1,000', min: '500', max: '1000' },
-  { label: '1,000 – 2,000', min: '1000', max: '2000' },
-  { label: '2,000 – 5,000', min: '2000', max: '5000' },
-  { label: '5,000 – 10,000', min: '5000', max: '10000' },
-  { label: 'Above 10,000', min: '10000', max: '' },
+const PRICE_RANGES: Array<{ min: string; max: string }> = [
+  { min: '', max: '500' },
+  { min: '500', max: '1000' },
+  { min: '1000', max: '2000' },
+  { min: '2000', max: '5000' },
+  { min: '5000', max: '10000' },
+  { min: '10000', max: '' },
 ]
 
 export interface CatalogSelection {
@@ -42,10 +43,19 @@ export function FilterSidebar({
   onChange,
   onClear,
 }: FilterSidebarProps) {
+  const { t } = useTranslation()
   const [brandSearch, setBrandSearch] = useState('')
   const [featureSearch, setFeatureSearch] = useState('')
   const [showAllBrands, setShowAllBrands] = useState(false)
   const [showAllFeatures, setShowAllFeatures] = useState(false)
+
+  // Numbers are grouped per the active locale (1,000 vs 1.000).
+  const priceRangeLabel = (range: { min: string; max: string }) => {
+    const fmt = (v: string) => Number(v).toLocaleString()
+    if (!range.min) return t('catalog.price_up_to', { max: fmt(range.max) })
+    if (!range.max) return t('catalog.price_above', { min: fmt(range.min) })
+    return t('catalog.price_between', { min: fmt(range.min), max: fmt(range.max) })
+  }
 
   const isPresent = (option: FilterOption, selectedIds: number[]) =>
     option.count === undefined || option.count > 0 || selectedIds.includes(option.id)
@@ -78,14 +88,16 @@ export function FilterSidebar({
   return (
     <aside className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900 text-sm dark:text-white">Filters</h2>
+        <h2 className="font-semibold text-gray-900 text-sm dark:text-white">
+          {t('catalog.filters')}
+        </h2>
         {hasSelection && (
           <button
             type="button"
             onClick={onClear}
             className="font-medium text-blue-600 text-xs hover:underline dark:text-blue-400"
           >
-            Clear all
+            {t('catalog.clear_all')}
           </button>
         )}
       </div>
@@ -93,14 +105,14 @@ export function FilterSidebar({
       {/* Brands */}
       <div>
         <h3 className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-          Brands
+          {t('catalog.brands')}
         </h3>
         <div className="relative mb-2">
           <Search className="absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
           <Input
             value={brandSearch}
             onChange={(e) => setBrandSearch(e.target.value)}
-            placeholder="Search brands"
+            placeholder={t('catalog.search_brands')}
             className="h-9 pl-8 text-sm"
           />
         </div>
@@ -133,7 +145,7 @@ export function FilterSidebar({
             onClick={() => setShowAllBrands((value) => !value)}
             className="mt-1 flex items-center gap-1 font-medium text-blue-600 text-xs hover:underline dark:text-blue-400"
           >
-            {showAllBrands ? 'Show less' : 'Show all'}
+            {showAllBrands ? t('catalog.show_less') : t('catalog.show_all')}
             <ChevronDown
               className={`h-3.5 w-3.5 transition-transform duration-200 ${showAllBrands ? 'rotate-180' : ''}`}
             />
@@ -144,14 +156,14 @@ export function FilterSidebar({
       {/* Price */}
       <div>
         <h3 className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-          Price range
+          {t('catalog.price_range')}
         </h3>
         <div className="space-y-1">
           {PRICE_RANGES.map((range) => {
             const active = selection.minPrice === range.min && selection.maxPrice === range.max
             return (
               <button
-                key={range.label}
+                key={`${range.min}-${range.max}`}
                 type="button"
                 onClick={() =>
                   onChange(
@@ -166,7 +178,7 @@ export function FilterSidebar({
                     : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800'
                 }`}
               >
-                {range.label}
+                {priceRangeLabel(range)}
               </button>
             )
           })}
@@ -183,7 +195,7 @@ export function FilterSidebar({
           <Input
             value={featureSearch}
             onChange={(e) => setFeatureSearch(e.target.value)}
-            placeholder="Search features"
+            placeholder={t('catalog.search_features')}
             className="h-9 pl-8 text-sm"
           />
         </div>
@@ -218,7 +230,7 @@ export function FilterSidebar({
             onClick={() => setShowAllFeatures((value) => !value)}
             className="mt-1 flex items-center gap-1 font-medium text-blue-600 text-xs hover:underline dark:text-blue-400"
           >
-            {showAllFeatures ? 'Show less' : 'Show all'}
+            {showAllFeatures ? t('catalog.show_less') : t('catalog.show_all')}
             <ChevronDown
               className={`h-3.5 w-3.5 transition-transform duration-200 ${showAllFeatures ? 'rotate-180' : ''}`}
             />

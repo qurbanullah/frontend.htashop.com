@@ -11,10 +11,15 @@ import {
   User,
   X,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type Category, categoriesApi } from '@/api/categories'
 import { useAuth } from '@/hooks/auth/useAuth'
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
+import { getLanguageName } from '@/i18n/config'
+import { cdnUrl } from '@/lib/cdn'
+import { readingDirectionSign } from '@/lib/rtl'
 import { paths } from '@/routes/paths'
 import { useCategoryDrawerStore } from '@/stores/category-drawer'
 
@@ -29,14 +34,14 @@ function CategoryRow({
   const hasChildren = (category.children?.length ?? 0) > 0
 
   const rowClass =
-    'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white'
+    'flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-start text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 dark:hover:text-white'
 
   if (hasChildren) {
     return (
       <li>
         <button type="button" onClick={() => onSelect(category)} className={rowClass}>
           <span className="truncate">{category.name}</span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-gray-400" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 rtl:rotate-180" />
         </button>
       </li>
     )
@@ -71,14 +76,13 @@ function resolveAvatarUrl(
   user: { avatar_urls?: { medium?: string | null }; avatar_url?: string | null } | null
 ): string | null {
   const path = user?.avatar_urls?.medium || user?.avatar_url || ''
-  if (!path) return null
-  return path.startsWith('http') ? path : `https://cdn.htashop.com/${path}`
+  return path ? cdnUrl(path) : null
 }
 
 const QUICK_LINKS = [
-  { label: 'Trending', to: `${paths.products}?sort=trending` },
-  { label: 'Best Sellers', to: `${paths.products}?sort=best_sellers` },
-  { label: 'New Releases', to: `${paths.products}?sort=newest` },
+  { labelKey: 'categoryDrawer.quick_trending', to: `${paths.products}?sort=trending` },
+  { labelKey: 'categoryDrawer.quick_best_sellers', to: `${paths.products}?sort=best_sellers` },
+  { labelKey: 'categoryDrawer.quick_new_releases', to: `${paths.products}?sort=newest` },
 ]
 
 const CATEGORY_PREVIEW_COUNT = 4
@@ -88,14 +92,19 @@ export function CategoryDrawer() {
   const isOpen = useCategoryDrawerStore((state) => state.isOpen)
   const close = useCategoryDrawerStore((state) => state.close)
   const { isAuthenticated, user, logout } = useAuth()
+  const { t, i18n } = useTranslation()
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [categoryPath, setCategoryPath] = useState<Category[]>([])
   const [slideDirection, setSlideDirection] = useState<'forward' | 'back'>('forward')
 
   const avatarUrl = resolveAvatarUrl(user)
+  const panelRef = useRef<HTMLDivElement>(null)
+  // Drawers enter from the inline-start edge, which is the right in RTL.
+  const closedX = readingDirectionSign() === -1 ? '100%' : '-100%'
 
   const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['category-drawer-tree'],
+    // Shares the top-bar cache entry so opening the drawer never refetches the tree.
+    queryKey: ['storefront-categories'],
     queryFn: () => categoriesApi.tree(),
     staleTime: 10 * 60 * 1000,
     enabled: isOpen,
@@ -136,6 +145,20 @@ export function CategoryDrawer() {
     }
   }, [isOpen])
 
+  // Modal semantics: Escape closes it and focus cannot Tab out into the page behind.
+  useFocusTrap(panelRef, isOpen)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close()
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isOpen, close])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -153,10 +176,14 @@ export function CategoryDrawer() {
       {isOpen && (
         <motion.div
           key="category-panel"
-          className="fixed inset-y-0 left-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl dark:bg-gray-900"
-          initial={{ x: '-100%' }}
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('categoryDrawer.label')}
+          className="fixed inset-y-0 start-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl dark:bg-gray-900"
+          initial={{ x: closedX }}
           animate={{ x: 0 }}
-          exit={{ x: '-100%' }}
+          exit={{ x: closedX }}
           transition={{ type: 'tween', duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
         >
           {/* User header */}
@@ -187,9 +214,11 @@ export function CategoryDrawer() {
                   <User className="h-5 w-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-gray-500 text-xs dark:text-gray-400">Hello</span>
+                  <span className="block text-gray-500 text-xs dark:text-gray-400">
+                    {t('categoryDrawer.hello')}
+                  </span>
                   <span className="block font-semibold text-blue-600 text-sm dark:text-blue-400">
-                    Sign in
+                    {t('shell.sign_in')}
                   </span>
                 </span>
               </Link>
@@ -199,7 +228,7 @@ export function CategoryDrawer() {
               type="button"
               onClick={close}
               className="shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-white"
-              aria-label="Close menu"
+              aria-label={t('shell.close_menu')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -211,12 +240,12 @@ export function CategoryDrawer() {
             <div className="border-gray-100 border-b py-2 dark:border-gray-800">
               {QUICK_LINKS.map((item) => (
                 <Link
-                  key={item.label}
+                  key={item.labelKey}
                   to={item.to}
                   onClick={close}
                   className="block px-5 py-2.5 font-semibold text-gray-900 text-sm transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               ))}
             </div>
@@ -225,7 +254,10 @@ export function CategoryDrawer() {
             <section className="border-gray-100 border-b py-2 dark:border-gray-800">
               <motion.div
                 key={activeCategory?.id ?? 'root'}
-                initial={{ x: slideDirection === 'forward' ? 40 : -40, opacity: 0 }}
+                initial={{
+                  x: (slideDirection === 'forward' ? 40 : -40) * readingDirectionSign(),
+                  opacity: 0,
+                }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.2 }}
               >
@@ -236,8 +268,8 @@ export function CategoryDrawer() {
                       onClick={goBack}
                       className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 font-semibold text-gray-900 text-sm transition-colors hover:bg-gray-100 dark:text-white dark:hover:bg-gray-800"
                     >
-                      <ChevronLeft className="h-4 w-4" />
-                      Back
+                      <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+                      {t('categoryDrawer.back')}
                     </button>
                     <span className="truncate font-semibold text-gray-900 text-sm dark:text-white">
                       {activeCategory.name}
@@ -245,7 +277,7 @@ export function CategoryDrawer() {
                   </div>
                 ) : (
                   <h3 className="px-5 pt-3 pb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-                    Shop by Category
+                    {t('categoryDrawer.shop_by_category')}
                   </h3>
                 )}
 
@@ -255,14 +287,18 @@ export function CategoryDrawer() {
                     onClick={close}
                     className="block px-5 py-2 font-semibold text-blue-600 text-sm transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
                   >
-                    Shop all {activeCategory.name}
+                    {t('categoryDrawer.shop_all', { name: activeCategory.name })}
                   </Link>
                 )}
 
                 {isLoading ? (
-                  <p className="px-5 py-3 text-gray-400 text-sm">Loading categories…</p>
+                  <p className="px-5 py-3 text-gray-400 text-sm">
+                    {t('categoryDrawer.loading_categories')}
+                  </p>
                 ) : currentCategories.length === 0 ? (
-                  <p className="px-5 py-3 text-gray-400 text-sm">No subcategories available.</p>
+                  <p className="px-5 py-3 text-gray-400 text-sm">
+                    {t('categoryDrawer.no_subcategories')}
+                  </p>
                 ) : (
                   <ul className="px-2">
                     {visibleCategories.map((category) => (
@@ -279,10 +315,12 @@ export function CategoryDrawer() {
                   <button
                     type="button"
                     onClick={() => setShowAllCategories((value) => !value)}
-                    className="mt-1 flex w-full items-center gap-1 px-5 py-2.5 text-left font-medium text-blue-600 text-sm transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
+                    className="mt-1 flex w-full items-center gap-1 px-5 py-2.5 text-start font-medium text-blue-600 text-sm transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
                     aria-expanded={showAllCategories}
                   >
-                    {showAllCategories ? 'Show less' : 'Show all'}
+                    {showAllCategories
+                      ? t('categoryDrawer.show_less')
+                      : t('categoryDrawer.show_all')}
                     <ChevronDown
                       className={`h-4 w-4 transition-transform duration-200 ${showAllCategories ? 'rotate-180' : ''}`}
                     />
@@ -295,7 +333,7 @@ export function CategoryDrawer() {
                     onClick={close}
                     className="mt-1 block px-5 py-2.5 font-medium text-blue-600 text-sm transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
                   >
-                    See all categories
+                    {t('categoryDrawer.see_all_categories')}
                   </Link>
                 )}
               </motion.div>
@@ -304,28 +342,28 @@ export function CategoryDrawer() {
             {/* Programs & features */}
             <section className="border-gray-100 border-b py-2 dark:border-gray-800">
               <h3 className="px-5 pt-3 pb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-                Programs &amp; Features
+                {t('categoryDrawer.programs_features')}
               </h3>
               <Link
                 to={`${paths.products}?sort=newest`}
                 onClick={close}
                 className="block px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               >
-                New Arrivals
+                {t('footer.new_arrivals')}
               </Link>
               <Link
                 to={paths.accountOrders}
                 onClick={close}
                 className="block px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               >
-                Track Order
+                {t('footer.track_order')}
               </Link>
             </section>
 
             {/* Help & settings */}
             <section className="py-2">
               <h3 className="px-5 pt-3 pb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-                Help &amp; Settings
+                {t('categoryDrawer.help_settings')}
               </h3>
 
               {isAuthenticated ? (
@@ -336,15 +374,15 @@ export function CategoryDrawer() {
                     className="flex items-center gap-3 px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
                     <User className="h-4 w-4 text-gray-400" />
-                    Your Account
+                    {t('categoryDrawer.your_account')}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-5 py-2.5 text-left font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+                    className="flex w-full items-center gap-3 px-5 py-2.5 text-start font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
                     <LogOut className="h-4 w-4 text-gray-400" />
-                    Sign out
+                    {t('shell.sign_out')}
                   </button>
                 </>
               ) : (
@@ -354,33 +392,31 @@ export function CategoryDrawer() {
                   className="flex items-center gap-3 px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   <LogIn className="h-4 w-4 text-gray-400" />
-                  Sign in
+                  {t('shell.sign_in')}
                 </Link>
               )}
 
-              <a
-                href="https://htashop.com/contact"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to={paths.contact}
+                onClick={close}
                 className="flex items-center gap-3 px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 <HelpCircle className="h-4 w-4 text-gray-400" />
-                Help
-              </a>
-              <a
-                href="https://htashop.com/contact"
-                target="_blank"
-                rel="noopener noreferrer"
+                {t('categoryDrawer.help')}
+              </Link>
+              <Link
+                to={paths.contact}
+                onClick={close}
                 className="flex items-center gap-3 px-5 py-2.5 font-medium text-gray-800 text-sm transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 <Phone className="h-4 w-4 text-gray-400" />
-                Contact
-              </a>
+                {t('categoryDrawer.contact')}
+              </Link>
             </section>
 
             {/* Locale footer */}
             <div className="mx-5 mt-2 border-gray-100 border-t pt-4 text-gray-500 text-xs dark:border-gray-800 dark:text-gray-400">
-              <p className="mt-1">English</p>
+              <p className="mt-1">{getLanguageName(i18n.resolvedLanguage ?? i18n.language)}</p>
             </div>
           </div>
         </motion.div>

@@ -1,4 +1,4 @@
-# Development Dockerfile for HTAShop Manage
+# Development Dockerfile for HTAShop Storefront
 FROM node:24-alpine
 
 # Set working directory

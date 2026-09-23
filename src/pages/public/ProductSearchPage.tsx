@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Loader2, Package, SlidersHorizontal, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   type CatalogFiltersPayload,
@@ -18,6 +19,7 @@ import {
 } from '@/components/catalog/FilterSidebar'
 import { ProductCard } from '@/components/catalog/ProductCard'
 import { Seo, siteUrl } from '@/components/seo/Seo'
+import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import { paths } from '@/routes/paths'
 
 function useDebouncedValue<T>(value: T, delay = 350): T {
@@ -32,12 +34,12 @@ function useDebouncedValue<T>(value: T, delay = 350): T {
 }
 
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'best_sellers', label: 'Best Sellers' },
-  { value: 'trending', label: 'Trending' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'name', label: 'Name' },
+  { value: 'newest', labelKey: 'search.sort_newest' },
+  { value: 'best_sellers', labelKey: 'search.sort_best_sellers' },
+  { value: 'trending', labelKey: 'search.sort_trending' },
+  { value: 'price_asc', labelKey: 'search.sort_price_asc' },
+  { value: 'price_desc', labelKey: 'search.sort_price_desc' },
+  { value: 'name', labelKey: 'search.sort_name' },
 ]
 
 function findCategoryName(tree: Category[], categoryId: number | undefined): string | undefined {
@@ -84,11 +86,17 @@ function ProductResults({
   products: CatalogProduct[]
   meta: ProductsMeta | undefined
 }) {
+  const { t } = useTranslation()
+
   return (
     <>
       {meta && (
         <p className="mb-4 text-gray-500 text-sm dark:text-gray-400">
-          Showing {meta.from ?? 0}–{meta.to ?? 0} of {meta.total} products
+          {t('search.showing', {
+            from: meta.from ?? 0,
+            to: meta.to ?? 0,
+            total: meta.total,
+          })}
         </p>
       )}
 
@@ -99,9 +107,11 @@ function ProductResults({
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-gray-200 border-dashed py-24 text-center dark:border-gray-800">
           <Package className="mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />
-          <h3 className="font-semibold text-gray-900 text-lg dark:text-white">No products found</h3>
+          <h3 className="font-semibold text-gray-900 text-lg dark:text-white">
+            {t('search.no_products')}
+          </h3>
           <p className="mt-1 max-w-sm text-gray-500 text-sm dark:text-gray-400">
-            Try adjusting your search or filters to find what you're looking for.
+            {t('search.no_products_hint')}
           </p>
         </div>
       ) : (
@@ -122,6 +132,8 @@ function PaginationControls({
   meta: ProductsMeta | undefined
   onPageChange: (page: number) => void
 }) {
+  const { t } = useTranslation()
+
   if (!meta || meta.last_page <= 1) return null
 
   return (
@@ -132,11 +144,14 @@ function PaginationControls({
         disabled={meta.current_page <= 1}
         className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 font-medium text-gray-700 text-sm disabled:opacity-40 dark:border-gray-700 dark:text-gray-200"
       >
-        <ChevronLeft className="h-4 w-4" />
-        Previous
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {t('buttons.previous')}
       </button>
       <span className="text-gray-500 text-sm dark:text-gray-400">
-        Page {meta.current_page} of {meta.last_page}
+        {t('posts.page_of', {
+          current: meta.current_page,
+          total: meta.last_page,
+        })}
       </span>
       <button
         type="button"
@@ -144,8 +159,8 @@ function PaginationControls({
         disabled={meta.current_page >= meta.last_page}
         className="inline-flex h-9 items-center gap-1 rounded-lg border border-gray-300 px-3 font-medium text-gray-700 text-sm disabled:opacity-40 dark:border-gray-700 dark:text-gray-200"
       >
-        Next
-        <ChevronRight className="h-4 w-4" />
+        {t('buttons.next')}
+        <ChevronRight className="h-4 w-4 rtl:rotate-180" />
       </button>
     </div>
   )
@@ -208,6 +223,8 @@ function FacetChips({
   onToggleBrand: (id: number) => void
   onToggleFeature: (id: number) => void
 }) {
+  const { t } = useTranslation()
+
   const chips = [
     ...buildFacetChips(
       facets?.category_names?.counts ?? [],
@@ -237,7 +254,7 @@ function FacetChips({
   return (
     <div className="mb-5 flex flex-wrap items-center gap-2">
       <span className="font-medium text-gray-400 text-xs uppercase tracking-wide dark:text-gray-500">
-        Refine by:
+        {t('search.refine_by')}
       </span>
       {chips.slice(0, 15).map((chip) => (
         <button
@@ -267,12 +284,14 @@ function TrendingSearches({
   queries: TrendingSearch[]
   onSelect: (query: string) => void
 }) {
+  const { t } = useTranslation()
+
   if (queries.length === 0) return null
 
   return (
     <div>
       <h3 className="mb-2 font-semibold text-gray-500 text-xs uppercase tracking-wide dark:text-gray-400">
-        Trending searches
+        {t('shell.trending_searches')}
       </h3>
       <div className="flex flex-wrap gap-2">
         {queries.map(({ query, count }) => (
@@ -291,18 +310,28 @@ function TrendingSearches({
   )
 }
 
-function buildSeoTitle(isSearch: boolean, query: string, categoryName?: string): string {
-  if (isSearch) return `Search results for "${query.trim()}"`
-  return categoryName ?? 'Shop Products'
+function buildSeoTitle(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  isSearch: boolean,
+  query: string,
+  categoryName?: string
+): string {
+  if (isSearch) return t('search.seo_title_query', { query: query.trim() })
+  return categoryName ?? t('search.seo_title_default')
 }
 
-function buildSeoDescription(isSearch: boolean, query: string, categoryName?: string): string {
+function buildSeoDescription(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  isSearch: boolean,
+  query: string,
+  categoryName?: string
+): string {
   if (isSearch) {
-    return `Browse products matching "${query.trim()}" on HTAShop — electronics, IT, MRO, and industrial supplies with secure payments and fast delivery.`
+    return t('search.seo_description_query', { query: query.trim() })
   }
   return categoryName
-    ? `Shop ${categoryName} products online at HTAShop — verified suppliers, secure payments, and fast delivery across Pakistan.`
-    : 'Shop a wide range of products online at HTAShop — electronics, IT, MRO, and industrial supplies from verified suppliers with secure payments and fast delivery.'
+    ? t('search.seo_description_category', { category: categoryName })
+    : t('search.seo_description_default')
 }
 
 function MobileFilterDrawer({
@@ -326,6 +355,23 @@ function MobileFilterDrawer({
   onClear: () => void
   onSelectTrending: (query: string) => void
 }) {
+  const { t } = useTranslation()
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Modal semantics: Escape closes it and focus cannot Tab out into the page behind.
+  useFocusTrap(panelRef, open)
+
+  useEffect(() => {
+    if (!open) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [open, onClose])
+
   if (!open) return null
 
   return (
@@ -333,12 +379,21 @@ function MobileFilterDrawer({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close is a pointer convenience; the X button above closes the drawer for keyboard users */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close is a pointer convenience; the X button above closes the drawer for keyboard users */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute inset-y-0 left-0 w-80 max-w-[85%] overflow-y-auto bg-white p-5 dark:bg-gray-900">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('catalog.filters')}
+        className="absolute inset-y-0 start-0 w-80 max-w-[85%] overflow-y-auto bg-white p-5 dark:bg-gray-900"
+      >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 text-sm dark:text-white">Filters</h2>
+          <h2 className="font-semibold text-gray-900 text-sm dark:text-white">
+            {t('catalog.filters')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label={t('search.close_filters')}
             className="rounded p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X className="h-5 w-5" />
@@ -378,6 +433,7 @@ function applySearchParamsToFilters(
 }
 
 export default function ProductSearchPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -411,7 +467,7 @@ export default function ProductSearchPage() {
   })
 
   const { data: trending = [] } = useQuery({
-    queryKey: ['search-trending'],
+    queryKey: ['search-trending', 8],
     queryFn: () => catalogApi.trending(8),
     staleTime: 15 * 60 * 1000,
   })
@@ -433,8 +489,8 @@ export default function ProductSearchPage() {
   const isSearch = Boolean(query.trim())
   const currentPage = filters.page ?? 1
 
-  const seoTitle = buildSeoTitle(isSearch, query, categoryName)
-  const seoDescription = buildSeoDescription(isSearch, query, categoryName)
+  const seoTitle = buildSeoTitle(t, isSearch, query, categoryName)
+  const seoDescription = buildSeoDescription(t, isSearch, query, categoryName)
 
   const seoCanonical = buildProductsSeoCanonical({
     q: query,
@@ -459,12 +515,17 @@ export default function ProductSearchPage() {
     ],
   }
 
+  // Only the first page of results is exposed as structured data.
+  const itemListEntries = products.slice(0, 12)
+
   const itemListLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: seoTitle,
-    numberOfItems: products.length,
-    itemListElement: products.slice(0, 12).map((product, index) => ({
+    // Must match the number of ListItems actually emitted below, otherwise the
+    // markup is internally inconsistent and search engines discard it.
+    numberOfItems: itemListEntries.length,
+    itemListElement: itemListEntries.map((product, index) => ({
       '@type': 'ListItem',
       position: index + 1,
       url: siteUrl(`/products/${product.route_key}`),
@@ -639,7 +700,7 @@ export default function ProductSearchPage() {
               className="inline-flex h-11 items-center gap-2 rounded-lg border border-gray-300 px-4 font-medium text-gray-700 text-sm lg:hidden dark:border-gray-700 dark:text-gray-200"
             >
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              {t('catalog.filters')}
             </button>
 
             <select
@@ -649,7 +710,7 @@ export default function ProductSearchPage() {
             >
               {SORT_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </option>
               ))}
             </select>

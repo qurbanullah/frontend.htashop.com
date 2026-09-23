@@ -1,9 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, CheckCircle, LogIn, Mail, UserCheck, UserPlus, XCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { z } from 'zod'
+import TurnstileWidget from '@/components/auth/TurnstileWidget'
+import { Seo } from '@/components/seo/Seo'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,11 +16,15 @@ import api from '@/lib/api'
 
 import { isApiError } from '@/lib/api-response'
 
-const checkAccountSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-})
+type Translate = (key: string) => string
 
-type CheckAccountForm = z.infer<typeof checkAccountSchema>
+function createCheckAccountSchema(t: Translate) {
+  return z.object({
+    email: z.string().email(t('validation.email_valid')),
+  })
+}
+
+type CheckAccountForm = z.infer<ReturnType<typeof createCheckAccountSchema>>
 
 interface AccountCheckResult {
   exists: boolean
@@ -25,9 +32,13 @@ interface AccountCheckResult {
 }
 
 export default function CheckAccount() {
+  const { t } = useTranslation('auth')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AccountCheckResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+  const checkAccountSchema = useMemo(() => createCheckAccountSchema(t), [t])
 
   const {
     register,
@@ -45,14 +56,14 @@ export default function CheckAccount() {
 
       const response = await api
         .post('check-account', {
-          json: { email: data.email },
+          json: { email: data.email, turnstileToken: turnstileToken },
         })
         .json<AccountCheckResult>()
 
       setResult(response)
     } catch (err: unknown) {
       const message =
-        isApiError(err) && err.message ? err.message : 'Failed to check account. Please try again.'
+        isApiError(err) && err.message ? err.message : t('check_account.error_generic')
       setError(message)
     } finally {
       setLoading(false)
@@ -61,24 +72,22 @@ export default function CheckAccount() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-linear-to-br from-slate-50 via-white to-blue-50 px-4 py-8 sm:px-6 lg:px-8 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Seo title={t('seo.check_account')} noindex />
       <div className="w-full max-w-xl">
         {/* Back Link */}
         <Link
           to="/login"
           className="mb-6 inline-flex items-center gap-2 font-medium text-slate-600 text-sm transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Login
+          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+          {t('common.back_to_login')}
         </Link>
 
         {/* Header */}
         <div className="-mb-6 text-center">
           <Link to="/" className="inline-flex items-center justify-center gap-3">
-            <div className="dark:hidden">
-              <Logo width={120} />
-            </div>
+            <Logo width={120} />
           </Link>
-          {/* <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Journal Management System</p> */}
         </div>
 
         <Card className="overflow-hidden border-2 border-blue-200 bg-white shadow-2xl dark:border-blue-900/50 dark:bg-gray-800">
@@ -87,10 +96,10 @@ export default function CheckAccount() {
               <UserCheck className="h-7 w-7 text-blue-600 dark:text-blue-400" />
             </div>
             <CardTitle className="text-center font-bold text-2xl text-gray-900 dark:text-white">
-              Find Your Account
+              {t('check_account.title')}
             </CardTitle>
             <CardDescription className="text-center text-gray-900 text-sm dark:text-white">
-              Check if your email is registered in our system
+              {t('check_account.subtitle')}
             </CardDescription>
           </CardHeader>
 
@@ -139,18 +148,6 @@ export default function CheckAccount() {
                     >
                       {result.message}
                     </p>
-                    {/* {result.exists && result.name && (
-                      <div className="mt-2 space-y-1 text-sm text-emerald-800 dark:text-emerald-200">
-                        <p>
-                          <span className="font-medium">Account Name:</span> {result.name}
-                        </p>
-                        {result.registered_at && (
-                          <p>
-                            <span className="font-medium">Registered:</span> {result.registered_at}
-                          </p>
-                        )}
-                      </div>
-                    )} */}
                   </div>
                 </div>
               )}
@@ -162,21 +159,21 @@ export default function CheckAccount() {
                   className="flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200"
                 >
                   <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  Email Address
+                  {t('common.email_address')}
                 </Label>
                 <div className="relative">
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Email Address"
+                    placeholder={t('common.email_address')}
                     {...register('email')}
-                    className={`h-11 border-2 pl-10 text-base transition-all ${
+                    className={`h-11 border-2 ps-10 text-base transition-all ${
                       errors.email
                         ? 'border-red-500 focus:ring-red-500'
                         : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600'
                     }`}
                   />
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
                     <svg
                       className="h-5 w-5 text-slate-400 dark:text-slate-500"
                       fill="none"
@@ -194,7 +191,10 @@ export default function CheckAccount() {
                   </div>
                 </div>
                 {errors.email && (
-                  <p className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400">
+                  <p
+                    role="alert"
+                    className="flex items-center gap-1 text-red-600 text-sm dark:text-red-400"
+                  >
                     <svg
                       className="h-4 w-4"
                       fill="currentColor"
@@ -212,6 +212,11 @@ export default function CheckAccount() {
                 )}
               </div>
 
+              {/* Turnstile */}
+              <div className="flex justify-center">
+                <TurnstileWidget onVerify={setTurnstileToken} />
+              </div>
+
               {/* Submit Button */}
               <Button
                 type="submit"
@@ -220,13 +225,13 @@ export default function CheckAccount() {
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
-                    <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Checking Account...
+                    <div className="me-2 h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    {t('check_account.submitting')}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center">
-                    <UserCheck className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
-                    Check Account Status
+                    <UserCheck className="me-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                    {t('check_account.submit')}
                   </div>
                 )}
               </Button>
@@ -241,7 +246,7 @@ export default function CheckAccount() {
                   </div>
                   <div className="relative flex justify-center text-sm">
                     <span className="bg-white px-4 text-slate-500 dark:bg-gray-800 dark:text-slate-400">
-                      What's next?
+                      {t('check_account.next_title')}
                     </span>
                   </div>
                 </div>
@@ -254,8 +259,8 @@ export default function CheckAccount() {
                         to="/login"
                         className="group flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg dark:bg-blue-600 dark:hover:bg-blue-700"
                       >
-                        <LogIn className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                        Go to Login
+                        <LogIn className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+                        {t('check_account.go_login')}
                       </Link>
                       {/* Forgot Password */}
                       <Link
@@ -276,7 +281,7 @@ export default function CheckAccount() {
                             d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                           />
                         </svg>
-                        Forgot Your Password?
+                        {t('check_account.forgot')}
                       </Link>
                     </>
                   ) : (
@@ -287,7 +292,7 @@ export default function CheckAccount() {
                         className="group flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-semibold text-sm text-white shadow-md transition-all hover:bg-emerald-700 hover:shadow-lg dark:bg-emerald-600 dark:hover:bg-emerald-700"
                       >
                         <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
-                        Create New Account
+                        {t('check_account.create_account')}
                       </Link>
                       {/* Try Another Email */}
                       <button
@@ -296,7 +301,7 @@ export default function CheckAccount() {
                         className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 text-sm transition-all hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800"
                       >
                         <Mail className="h-5 w-5" />
-                        Try Another Email
+                        {t('check_account.try_again')}
                       </button>
                     </>
                   )}
@@ -308,9 +313,11 @@ export default function CheckAccount() {
             {!result && (
               <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <p className="text-center text-slate-600 text-sm dark:text-slate-400">
-                  <span className="font-medium text-slate-900 dark:text-slate-200">Need help?</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-200">
+                    {t('check_account.help_title')}
+                  </span>
                   <br />
-                  Enter your email address to verify if you're registered in the system.
+                  {t('check_account.help_body')}
                 </p>
               </div>
             )}

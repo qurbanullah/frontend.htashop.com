@@ -1,4 +1,5 @@
 import api from '@/api/client'
+import i18n from '@/i18n/config'
 import { type ApiResponse, parseApiResponse } from '@/lib/api-response'
 import { authHeaders } from '@/lib/auth-header'
 import type { User } from '@/stores/auth'
@@ -8,7 +9,7 @@ import type { User } from '@/stores/auth'
 export interface LoginRequest {
   email: string
   password: string
-  turnstile_token?: string | null
+  turnstileToken?: string | null
 }
 
 export interface RegisterRequest {
@@ -18,7 +19,7 @@ export interface RegisterRequest {
   email: string
   password: string
   password_confirmation: string
-  turnstile_token?: string | null
+  turnstileToken?: string | null
 }
 
 // ── Response types ──
@@ -33,7 +34,11 @@ export interface AuthData {
     updated_at: string
     roles: string[]
   }
-  access_token: string
+  /**
+   * Absent for the storefront: it authenticates with the httpOnly cookie and the
+   * API withholds the bearer token from the body (X-Client: storefront).
+   */
+  access_token?: string
   token_type: string
   expires_in: number
   refresh_token?: string | null
@@ -43,7 +48,6 @@ export interface NormalizedAuthResponse {
   success: boolean
   message: string
   user: AuthData['user']
-  token: string
   token_type: string
   expires_in: number
 }
@@ -63,18 +67,41 @@ export interface MessageResponse {
 // ── Auth API ──
 
 export const authApi = {
-  async checkAccount(email: string): Promise<AccountCheckResponse> {
-    return api.post('check-account', { json: { email } }).json()
+  /**
+   * Pre-registration duplicate check. Requires a Turnstile token in production
+   * (the API rejects an empty token with 422), so callers must pass the one
+   * collected by the form. Failures are returned rather than thrown so the
+   * caller can surface the backend message instead of "network error".
+   */
+  async checkAccount(email: string, turnstileToken?: string | null): Promise<AccountCheckResponse> {
+    const res = await api.post('check-account', {
+      json: { email, turnstileToken: turnstileToken || null },
+      throwHttpErrors: false,
+    })
+    const body = (await res.json().catch(() => null)) as AccountCheckResponse | null
+    if (!res.ok || !body) {
+      return {
+        success: false,
+        exists: false,
+        message: body?.message ?? i18n.t('check_account.error_generic'),
+      }
+    }
+    return body
   },
 
   async login(credentials: LoginRequest): Promise<NormalizedAuthResponse> {
-    const res = await api.post('login', { json: credentials, throwHttpErrors: false })
+    const res = await api.post('login', {
+      json: credentials,
+      // Signals the API to withhold the bearer token from the response body —
+      // the storefront uses the httpOnly session cookie instead.
+      headers: { 'X-Client': 'storefront' },
+      throwHttpErrors: false,
+    })
     const body = await parseApiResponse<AuthData>(res)
     return {
       success: body.success,
       message: body.message,
       user: body.data.user,
-      token: body.data.access_token,
       token_type: body.data.token_type,
       expires_in: body.data.expires_in,
     }
@@ -87,7 +114,6 @@ export const authApi = {
       success: body.success,
       message: body.message,
       user: body.data.user,
-      token: body.data.access_token,
       token_type: body.data.token_type,
       expires_in: body.data.expires_in,
     }
@@ -106,9 +132,12 @@ export const authApi = {
     return parseApiResponse(res)
   },
 
-  async resendVerificationEmail(email: string): Promise<MessageResponse> {
+  async resendVerificationEmail(
+    email: string,
+    turnstileToken?: string | null
+  ): Promise<MessageResponse> {
     const res = await api.post('resend-verification-email', {
-      json: { email },
+      json: { email, turnstileToken: turnstileToken || null },
       throwHttpErrors: false,
     })
     return parseApiResponse(res)
@@ -116,10 +145,11 @@ export const authApi = {
 
   async forgotPassword(
     email: string,
-    frontend: 'main' | 'manage' | 'admin' = 'manage'
+    frontend: 'main' | 'manage' | 'admin' = 'main',
+    turnstileToken?: string | null
   ): Promise<MessageResponse> {
     const res = await api.post('forgot-password', {
-      json: { email, frontend },
+      json: { email, frontend, turnstileToken: turnstileToken || null },
       throwHttpErrors: false,
     })
     return parseApiResponse(res)
@@ -130,6 +160,7 @@ export const authApi = {
     email: string
     password: string
     password_confirmation: string
+    turnstileToken?: string | null
   }): Promise<MessageResponse> {
     const res = await api.post('reset-password', { json: data, throwHttpErrors: false })
     return parseApiResponse(res)

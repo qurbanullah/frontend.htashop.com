@@ -1,5 +1,6 @@
 import api from '@/api/client'
 import { parseApiResponse } from '@/lib/api-response'
+import type { ImageUrls } from '@/lib/image-srcset'
 
 export interface CatalogProduct {
   id: number
@@ -14,6 +15,7 @@ export interface CatalogProduct {
   sale_price: number | string | null
   currency: string | null
   image_url: string | null
+  image_urls?: ImageUrls | null
   categories?: Array<{ id: number; name: string; slug: string }>
   brands?: Array<{ id: number; uuid: string; name: string; slug: string }>
   features?: Array<{ id: number; name: string; slug: string }>
@@ -68,6 +70,7 @@ export interface CatalogProductDetail extends CatalogProduct {
   description: string | null
   specs: Array<{ key: string; value: string; unit_id: number | null; unit_name: string }>
   gallery: string[]
+  gallery_sizes?: ImageUrls[] | null
   image_original_url: string | null
   gallery_original: string[]
   highlights: Array<{ id: number; label: string | null; heading: string | null; body: string }>
@@ -237,7 +240,7 @@ export const catalogApi = {
   },
 
   async product(routeKey: string): Promise<CatalogProductDetail> {
-    const res = await api.get(`catalog/products/${routeKey}`)
+    const res = await api.get(`catalog/products/${encodeURIComponent(routeKey)}`)
     const body = await parseApiResponse<CatalogProductDetail>(res)
     return body.data as CatalogProductDetail
   },
