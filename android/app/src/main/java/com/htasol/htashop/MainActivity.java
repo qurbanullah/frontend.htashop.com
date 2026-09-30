@@ -1,4 +1,4 @@
-package com.avouchsolutions.htashop;
+package com.htasol.htashop;
 
 import com.getcapacitor.BridgeActivity;
 

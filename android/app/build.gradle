@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.avouchsolutions.htashop"
+    namespace "com.htasol.htashop"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.avouchsolutions.htashop"
+        applicationId "com.htasol.htashop"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -15,6 +15,27 @@ android {
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
+
+        // App Links (https://htashop.com/*) host, driven by `appLinkHost` in
+        // gradle.properties so enabling verification stays a one-line change.
+        //
+        // Unset (the default) points the intent-filter at a reserved, non-resolving
+        // host, so it matches nothing: shipping it against htashop.com before
+        // https://htashop.com/.well-known/assetlinks.json carries this build's
+        // signing fingerprint would make Android show a disambiguation chooser
+        // instead of opening the app. www.<host> is claimed automatically — the
+        // verifier does not follow a redirect, so the apex must be served too (see
+        // deploy/config/haproxy.cfg).
+        def appLinkHost = (project.findProperty('appLinkHost') ?: '').toString().trim()
+        def appLinksEnabled = appLinkHost.length() > 0
+
+        // Assigned outright: nothing else in this project contributes placeholders.
+        // A future template that does should merge with this map instead.
+        manifestPlaceholders = [
+            appLinkHost: appLinksEnabled ? appLinkHost : 'applinks.invalid',
+            appLinkHostWww: appLinksEnabled ? "www.${appLinkHost}" : 'www.applinks.invalid',
+            appLinkAutoVerify: appLinksEnabled ? 'true' : 'false',
+        ]
     }
     buildTypes {
         release {

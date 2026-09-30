@@ -45,6 +45,10 @@ export const paths = {
 
   // Checkout
   checkout: '/checkout',
+  // Where a hosted gateway sends the customer back. Keep in step with
+  // PAYMENT_SUCCESS_URL / PAYMENT_CANCEL_URL in the API's config/payment.php.
+  checkoutSuccess: '/checkout/success',
+  checkoutCancel: '/checkout/cancel',
   orderConfirmation: '/orders',
 
   // Buyer account

@@ -16,6 +16,8 @@
         "test:coverage": "vitest --coverage",
         "cap:sync": "cap sync",
         "cap:copy": "cap copy",
+        "assets:render": "node scripts/render-brand-assets.mjs",
+        "assets:generate": "npm run assets:render && capacitor-assets generate --ios --android && node scripts/normalize-adaptive-icon.mjs",
         "cap:add:android": "cap add android",
         "cap:add:ios": "cap add ios",
         "cap:open:android": "cap open android",
@@ -23,9 +25,11 @@
         "cap:run:android": "cap run android"
     },
     "dependencies": {
+        "@aparajita/capacitor-secure-storage": "^7.1.6",
         "@capacitor/app": "^7.0.0",
         "@capacitor/core": "^7.0.0",
         "@capacitor/haptics": "^7.0.0",
+        "@capacitor/preferences": "^7.0.4",
         "@capacitor/push-notifications": "^7.0.0",
         "@capacitor/splash-screen": "^7.0.0",
         "@capacitor/status-bar": "^7.0.0",
@@ -64,6 +68,7 @@
     "devDependencies": {
         "@biomejs/biome": "^2.5.6",
         "@capacitor/android": "^7.0.0",
+        "@capacitor/assets": "^3.0.5",
         "@capacitor/cli": "^7.0.0",
         "@capacitor/ios": "^7.0.0",
         "@tailwindcss/postcss": "^4.3.3",

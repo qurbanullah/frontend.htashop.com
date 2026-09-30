@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup rules for API 31+ (`android:dataExtractionRules`).
+
+    Same intent as backup_rules.xml: keep the credential store out of both cloud
+    backups and device-to-device transfers. See that file for the rationale.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+            domain="sharedpref"
+            path="CapacitorStorage.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude
+            domain="sharedpref"
+            path="CapacitorStorage.xml" />
+    </device-transfer>
+</data-extraction-rules>

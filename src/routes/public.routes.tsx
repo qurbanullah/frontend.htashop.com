@@ -14,6 +14,7 @@ const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const FeedbackPage = lazy(() => import('@/pages/public/FeedbackPage'))
 const UnsubscribePage = lazy(() => import('@/pages/public/UnsubscribePage'))
 const CheckoutPage = lazy(() => import('@/pages/public/CheckoutPage'))
+const PaymentReturnPage = lazy(() => import('@/pages/public/PaymentReturnPage'))
 const OrderConfirmationPage = lazy(() => import('@/pages/public/OrderConfirmationPage'))
 const PrivacyPolicyPage = lazy(() => import('@/pages/public/legal/PrivacyPolicyPage'))
 const TermsOfUsePage = lazy(() => import('@/pages/public/legal/TermsOfUsePage'))
@@ -45,6 +46,10 @@ export function PublicRoutes() {
         <Route path={paths.feedback} element={<FeedbackPage />} />
         <Route path={paths.unsubscribe} element={<UnsubscribePage />} />
         <Route path={paths.checkout} element={<CheckoutPage />} />
+        {/* Hosted gateways redirect back to these; both reconcile against the
+            API rather than trusting the gateway's query string. */}
+        <Route path={paths.checkoutSuccess} element={<PaymentReturnPage mode="success" />} />
+        <Route path={paths.checkoutCancel} element={<PaymentReturnPage mode="cancel" />} />
         <Route
           path={`${paths.orderConfirmation}/:uuid/confirmation`}
           element={<OrderConfirmationPage />}

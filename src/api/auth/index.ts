@@ -2,6 +2,13 @@ import api from '@/api/client'
 import i18n from '@/i18n/config'
 import { type ApiResponse, parseApiResponse } from '@/lib/api-response'
 import { authHeaders } from '@/lib/auth-header'
+import { isNativePlatform } from '@/lib/native'
+import {
+  clearNativeCredentials,
+  getNativeDeviceId,
+  getNativeRefreshToken,
+  saveNativeCredentials,
+} from '@/lib/native-auth'
 import type { User } from '@/stores/auth'
 
 // ── Request types ──
@@ -35,13 +42,18 @@ export interface AuthData {
     roles: string[]
   }
   /**
-   * Absent for the storefront: it authenticates with the httpOnly cookie and the
-   * API withholds the bearer token from the body (X-Client: storefront).
+   * Absent for the storefront: it authenticates with the httpOnly cookies and the
+   * API withholds the tokens from the body (X-Client: storefront). Native shells
+   * identify as X-Client: native and do receive them.
    */
   access_token?: string
+  /** Single-use, rotated on every refresh. Absent for the storefront. */
+  refresh_token?: string | null
   token_type: string
   expires_in: number
-  refresh_token?: string | null
+  /** Seconds until the refresh token expires, so the client can prompt early. */
+  refresh_expires_in?: number
+  refresh_token_expires_at?: string
 }
 
 export interface NormalizedAuthResponse {
@@ -65,6 +77,28 @@ export interface MessageResponse {
 }
 
 // ── Auth API ──
+
+/**
+ * Identifies this client to the API.
+ *
+ * The web storefront keeps its session in httpOnly cookies, so it asks the API
+ * to withhold the tokens from the login body. Native shells cannot use those
+ * cookies (see lib/native-auth.ts), so they identify as `native`, receive the
+ * tokens in the body, and report their install id so the API can group a
+ * device's sessions.
+ */
+function clientHeaders(): Record<string, string> {
+  if (!isNativePlatform()) {
+    return { 'X-Client': 'storefront' }
+  }
+
+  const deviceId = getNativeDeviceId()
+
+  return {
+    'X-Client': 'native',
+    ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
+  }
+}
 
 export const authApi = {
   /**
@@ -92,12 +126,19 @@ export const authApi = {
   async login(credentials: LoginRequest): Promise<NormalizedAuthResponse> {
     const res = await api.post('login', {
       json: credentials,
-      // Signals the API to withhold the bearer token from the response body —
-      // the storefront uses the httpOnly session cookie instead.
-      headers: { 'X-Client': 'storefront' },
+      headers: clientHeaders(),
       throwHttpErrors: false,
     })
     const body = await parseApiResponse<AuthData>(res)
+
+    // Native shells receive both tokens in the body and persist them so the API
+    // client can attach them on later requests. On the web the API withholds
+    // them and the httpOnly cookies carry the session instead.
+    await saveNativeCredentials({
+      accessToken: body.data.access_token,
+      refreshToken: body.data.refresh_token,
+    })
+
     return {
       success: body.success,
       message: body.message,
@@ -105,6 +146,36 @@ export const authApi = {
       token_type: body.data.token_type,
       expires_in: body.data.expires_in,
     }
+  },
+
+  /**
+   * Exchange the refresh token for a new pair. Called by the API client when an
+   * access token is rejected, so it is not usually invoked directly.
+   */
+  async refresh(): Promise<AuthData> {
+    // The browser presents its token as the path-scoped refresh cookie; a native
+    // shell has no usable cookie, so it sends the token in a header instead.
+    const refreshToken = getNativeRefreshToken()
+
+    const res = await api.post('refresh', {
+      headers: {
+        ...authHeaders(),
+        ...clientHeaders(),
+        ...(refreshToken ? { 'X-Refresh-Token': refreshToken } : {}),
+      },
+      throwHttpErrors: false,
+    })
+
+    // Throws for any rejection — expired, revoked, or a detected replay — which
+    // the API client treats as "the session is over".
+    const body = await parseApiResponse<AuthData>(res)
+
+    await saveNativeCredentials({
+      accessToken: body.data.access_token,
+      refreshToken: body.data.refresh_token,
+    })
+
+    return body.data
   },
 
   async register(userData: RegisterRequest): Promise<NormalizedAuthResponse> {
@@ -120,7 +191,19 @@ export const authApi = {
   },
 
   async logout(): Promise<MessageResponse> {
-    return api.post('logout', { headers: authHeaders() }).json()
+    try {
+      // An expired/again-revoked session answers 401; that is not an error from
+      // the caller's point of view, so it must not throw.
+      const res = await api.post('logout', {
+        headers: authHeaders(),
+        throwHttpErrors: false,
+      })
+      return (await res.json()) as MessageResponse
+    } finally {
+      // Drop the device-held tokens even when the API call fails, so a device
+      // cannot keep replaying a session the user asked to end.
+      await clearNativeCredentials()
+    }
   },
 
   async getCurrentUser(): Promise<ApiResponse<User>> {

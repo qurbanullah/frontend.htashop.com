@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Routes } from 'react-router-dom'
 import { RootLayout } from '@/components/layouts/RootLayout'
+import { DeepLinkHandler } from '@/components/shared/DeepLinkHandler'
 import { PageSpinner } from '@/components/shared/PageSpinner'
 import { ScrollRestoration } from '@/components/shared/ScrollRestoration'
 import { AccountRoutes } from '@/routes/account.routes'
@@ -11,6 +12,7 @@ export function AppRouter() {
   return (
     <>
       <ScrollRestoration />
+      <DeepLinkHandler />
       <RootLayout>
         <Suspense fallback={<PageSpinner />}>
           <Routes>

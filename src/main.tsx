@@ -10,7 +10,7 @@ import { useConsentStore } from '@/stores/consent' // Initialize consent store
 import { applyConsent } from './lib/consent/analytics'
 import { validateEnvironment } from './lib/env' // Environment validation
 import { isNativePlatform } from './lib/native'
-import { initNativeApp } from './lib/native-app'
+import { initNativeApp, prepareNativeShell } from './lib/native-app'
 
 // GDPR: gate all non-essential trackers (Sentry, GA4, Meta Pixel) behind the
 // user's stored consent choice. This runs before first paint; the live
@@ -71,16 +71,26 @@ if (isNativePlatform()) {
 }
 
 const root = ReactDOM.createRoot(getRootElement())
-root.render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
-)
 
-// Initialize native-only features (status bar, push, deep links) and hide the
-// native splash screen. No-op when running in a browser.
-void initNativeApp()
+// Read the device-stored credentials (native shells) before the first render, so
+// the auth store's boot-time re-validation already carries the bearer token and
+// a launch deep link becomes the initial route. Both steps are no-ops on the web.
+async function bootstrap(): Promise<void> {
+  await prepareNativeShell()
+
+  root.render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  )
+
+  // Initialize native-only features (status bar, push, deep links) and hide the
+  // native splash screen. No-op when running in a browser.
+  void initNativeApp()
+}
+
+void bootstrap()

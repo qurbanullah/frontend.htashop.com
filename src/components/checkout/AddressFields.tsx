@@ -1,237 +1,155 @@
-import { useQuery } from '@tanstack/react-query'
-import { Check, ChevronDown, MapPin, Search } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { citiesApi } from '@/api/cities'
-import { countriesApi } from '@/api/countries'
+import { CityField } from '@/components/checkout/CityField'
+import { CountrySelect } from '@/components/checkout/CountrySelect'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { type AddressFormValue, EMPTY_ADDRESS } from '@/lib/address'
+import { cn } from '@/lib/utils'
 
-export interface AddressFormValue {
-  contact_name: string
-  phone: string
-  address_line_1: string
-  address_line_2: string
-  city: string
-  city_id: number | null
-  state: string
-  postal_code: string
-  country_id: number | null
-}
-
-export const EMPTY_ADDRESS: AddressFormValue = {
-  contact_name: '',
-  phone: '',
-  address_line_1: '',
-  address_line_2: '',
-  city: '',
-  city_id: null,
-  state: '',
-  postal_code: '',
-  country_id: null,
-}
+// Re-exported so existing import sites keep working; the canonical definition
+// lives in `@/lib/address` so non-React code can depend on the shape.
+export type { AddressFormValue }
+export { EMPTY_ADDRESS }
 
 interface Props {
   value: AddressFormValue
   onChange: (value: AddressFormValue) => void
-  title: string
+  title?: string
+  /**
+   * Namespaces DOM ids and error lookups. Two address groups on one page
+   * (shipping and billing) must not mint duplicate `id`s, or their labels point
+   * at the wrong input.
+   */
+  idPrefix: string
+  /** Messages keyed by field name, already translated. */
+  errors?: Record<string, string>
+  disabled?: boolean
+  /** Billing drops the recipient name/phone — the invoice is addressed to the buyer. */
+  showContact?: boolean
 }
 
-export function AddressFields({ value, onChange, title }: Props) {
+export function AddressFields({
+  value,
+  onChange,
+  title,
+  idPrefix,
+  errors = {},
+  disabled = false,
+  showContact = true,
+}: Props) {
   const { t } = useTranslation()
-  const [countryOpen, setCountryOpen] = useState(false)
-  const [countrySearch, setCountrySearch] = useState('')
-  const countryRef = useRef<HTMLDivElement>(null)
 
-  const { data: countries = [] } = useQuery({
-    queryKey: ['countries'],
-    queryFn: () => countriesApi.list(),
-    staleTime: 24 * 60 * 60 * 1000,
-  })
+  const set = <K extends keyof AddressFormValue>(key: K, next: AddressFormValue[K]) =>
+    onChange({ ...value, [key]: next })
 
-  const countryId = value.country_id
-  const { data: cities = [] } = useQuery({
-    queryKey: ['cities', countryId],
-    queryFn: () => citiesApi.list(countryId as number),
-    enabled: !!countryId,
-  })
-
-  const selectedCountry = countries.find((c) => c.id === countryId) ?? null
-
-  const filteredCountries = useMemo(() => {
-    const q = countrySearch.trim().toLowerCase()
-    if (!q) return countries
-    return countries.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
-    )
-  }, [countries, countrySearch])
-
-  const set = <K extends keyof AddressFormValue>(key: K, v: AddressFormValue[K]) =>
-    onChange({ ...value, [key]: v })
-
-  const field = (
-    labelText: string,
+  const renderField = (
     key: keyof AddressFormValue,
-    type = 'text',
-    placeholder = '',
-    required = false
-  ) => (
-    <div className="space-y-1.5">
-      <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-        {labelText}
-        {required && <span className="text-red-500"> *</span>}
-      </Label>
-      <Input
-        type={type}
-        value={String(value[key] ?? '')}
-        onChange={(e) => set(key, e.target.value as AddressFormValue[typeof key])}
-        placeholder={placeholder}
-        className="h-10"
-      />
-    </div>
-  )
+    options: {
+      type?: string
+      placeholder?: string
+      required?: boolean
+      autoComplete?: string
+      span?: boolean
+    } = {}
+  ) => {
+    const { type = 'text', placeholder = '', required = false, autoComplete, span } = options
+    const message = errors[key]
+    const fieldId = `${idPrefix}-${key}`
+    const errorId = `${fieldId}-error`
+
+    return (
+      <div key={key} className={cn('space-y-1.5', span && 'sm:col-span-2')}>
+        <Label htmlFor={fieldId} className="font-medium text-gray-700 text-sm dark:text-gray-300">
+          {t(`address_fields.${key}`)}
+          {required && (
+            <span className="text-red-500" aria-hidden="true">
+              {' '}
+              *
+            </span>
+          )}
+        </Label>
+
+        <Input
+          id={fieldId}
+          type={type}
+          value={String(value[key] ?? '')}
+          onChange={(event) => set(key, event.target.value as AddressFormValue[typeof key])}
+          placeholder={placeholder}
+          required={required}
+          autoComplete={autoComplete}
+          disabled={disabled}
+          aria-invalid={message ? true : undefined}
+          aria-describedby={message ? errorId : undefined}
+          className={cn('h-10', message && 'border-red-500 focus-visible:ring-red-500')}
+        />
+
+        {message && (
+          <p id={errorId} className="text-red-600 text-xs dark:text-red-400">
+            {message}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-semibold text-gray-900 text-sm dark:text-white">{title}</h3>
+    <fieldset className="space-y-4" disabled={disabled}>
+      {title && (
+        <legend className="font-semibold text-gray-900 text-sm dark:text-white">{title}</legend>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {field('Contact Name', 'contact_name', 'text', 'John Doe', true)}
-        {field('Phone', 'phone', 'tel', '+92 300 0000000')}
+        {showContact && (
+          <>
+            {renderField('contact_name', {
+              required: true,
+              autoComplete: 'name',
+              placeholder: t('address_fields.contact_name_placeholder'),
+            })}
+            {renderField('phone', {
+              type: 'tel',
+              required: true,
+              autoComplete: 'tel',
+              placeholder: t('address_fields.phone_placeholder'),
+            })}
+          </>
+        )}
 
-        <div className="sm:col-span-2">
-          {field('Address Line 1', 'address_line_1', 'text', 'Street address, P.O. box', true)}
-        </div>
-        <div className="sm:col-span-2">
-          {field(
-            'Address Line 2',
-            'address_line_2',
-            'text',
-            'Apartment, suite, unit, building, floor'
-          )}
-        </div>
+        {renderField('address_line_1', {
+          span: true,
+          required: true,
+          autoComplete: 'address-line1',
+          placeholder: t('address_fields.address_line_1_placeholder'),
+        })}
+        {renderField('address_line_2', {
+          span: true,
+          autoComplete: 'address-line2',
+          placeholder: t('address_fields.address_line_2_placeholder'),
+        })}
 
-        {/* Country */}
-        <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            {t('address_fields.country')} <span className="text-red-500"> *</span>
-          </Label>
-          <div ref={countryRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setCountryOpen((v) => !v)}
-              className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 text-left text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-            >
-              {selectedCountry ? (
-                <span className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  {selectedCountry.name}
-                </span>
-              ) : (
-                <span className="text-gray-400">{t('address_fields.select_country')}</span>
-              )}
-              <ChevronDown className="h-4 w-4 text-gray-400" />
-            </button>
+        <CountrySelect
+          idPrefix={idPrefix}
+          value={value.country_id}
+          disabled={disabled}
+          error={errors.country_id}
+          onSelect={(countryId) =>
+            onChange({ ...value, country_id: countryId, city_id: null, city: '' })
+          }
+        />
 
-            {countryOpen && (
-              <div className="absolute top-full left-0 z-20 mt-1 w-full overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
-                <div className="border-gray-100 border-b p-2 dark:border-gray-800">
-                  <div className="relative">
-                    <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      value={countrySearch}
-                      onChange={(e) => setCountrySearch(e.target.value)}
-                      placeholder={t('address_fields.search_countries')}
-                      className="h-8 pl-8 text-xs"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-                <div className="max-h-56 overflow-y-auto">
-                  {filteredCountries.length === 0 ? (
-                    <p className="px-3 py-4 text-center text-gray-400 text-xs">
-                      {t('address_fields.no_countries')}
-                    </p>
-                  ) : (
-                    filteredCountries.map((country) => {
-                      const active = country.id === countryId
-                      return (
-                        <button
-                          key={country.id}
-                          type="button"
-                          onClick={() => {
-                            onChange({
-                              ...value,
-                              country_id: country.id,
-                              city_id: null,
-                              city: '',
-                            })
-                            setCountryOpen(false)
-                            setCountrySearch('')
-                          }}
-                          className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                            active ? 'bg-blue-50 dark:bg-blue-950/30' : ''
-                          }`}
-                        >
-                          <span className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-400 text-xs uppercase">
-                              {country.code}
-                            </span>
-                            {country.name}
-                          </span>
-                          {active && <Check className="h-4 w-4 text-blue-600" />}
-                        </button>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <CityField
+          idPrefix={idPrefix}
+          countryId={value.country_id}
+          cityId={value.city_id}
+          city={value.city}
+          disabled={disabled}
+          error={errors.city}
+          onChange={({ city_id, city }) => onChange({ ...value, city_id, city })}
+        />
 
-        {/* City */}
-        <div className="space-y-1.5">
-          <Label className="font-medium text-gray-700 text-sm dark:text-gray-300">
-            {t('address_fields.city')}
-          </Label>
-          {countryId && cities.length > 0 ? (
-            <div className="relative">
-              <select
-                value={value.city_id ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value ? Number(e.target.value) : null
-                  const city = cities.find((c) => c.id === id)
-                  onChange({
-                    ...value,
-                    city_id: id,
-                    city: city?.name ?? '',
-                  })
-                }}
-                className="h-10 w-full appearance-none rounded-md border border-gray-300 bg-white px-3 pr-9 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-              >
-                <option value="">{t('address_fields.select_city')}</option>
-                {cities.map((city) => (
-                  <option key={city.id} value={city.id}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
-          ) : (
-            <Input
-              value={value.city}
-              onChange={(e) => set('city', e.target.value)}
-              placeholder={countryId ? 'Type a city...' : 'Select a country first'}
-              className="h-10"
-            />
-          )}
-        </div>
-
-        {field('State / Province', 'state', 'text', 'Punjab')}
-        {field('Postal Code', 'postal_code', 'text', '54000')}
+        {renderField('state', { autoComplete: 'address-level1' })}
+        {renderField('postal_code', { autoComplete: 'postal-code' })}
       </div>
-    </div>
+    </fieldset>
   )
 }

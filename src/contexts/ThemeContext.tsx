@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
+import { syncStatusBarForTheme } from '@/lib/native-ui'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -37,6 +38,9 @@ function setThemeColor(dark: boolean): void {
 
   const apple = document.getElementById('apple-status-bar-meta') as HTMLMetaElement | null
   if (apple) apple.content = dark ? 'black-translucent' : 'default'
+
+  // Keep the native status bar in step with the document (no-op on the web).
+  void syncStatusBarForTheme(dark)
 }
 
 // ── Provider ──

@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { api } from '@/api/client'
 import type { ApiResponse } from '@/lib/api-response'
+import { clearNativeCredentials, loadNativeCredentials } from '@/lib/native-auth'
 
 export const AUTH_STORAGE_KEY = 'auth-storage'
 
@@ -71,14 +72,19 @@ const persistedStore = persist(
         state.error = null
       }),
 
-    logout: () =>
+    logout: () => {
+      // Drop the device-held session tokens too: the persisted user object alone
+      // must never be enough to resume a session on a native device.
+      void clearNativeCredentials()
+
       set((state) => {
         state.user = null
         state.isAuthenticated = false
         state.isInitializing = false
         state.isLoading = false
         state.error = null
-      }),
+      })
+    },
 
     setUser: (user: User) =>
       set((state) => {
@@ -113,9 +119,14 @@ const persistedStore = persist(
         draft.isInitializing = true
       })
 
-      // The access token is now stored in an httpOnly cookie (set by the API
-      // on login), so no Authorization header is needed here. The cookie is
-      // sent automatically because the API client uses `credentials: 'include'`.
+      // Native shells hold their tokens in the device store; load them before
+      // the first request so the re-validation below is authenticated. Memoised,
+      // and an immediate no-op on the web.
+      await loadNativeCredentials()
+
+      // The web access token lives in an httpOnly cookie (set by the API on
+      // login), so no Authorization header is needed here. The cookie is sent
+      // automatically because the API client uses `credentials: 'include'`.
       try {
         const body = await api.get('user').json<ApiResponse<User>>()
 

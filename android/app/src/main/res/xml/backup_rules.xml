@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup rules for API 30 and below (`android:fullBackupContent`).
+
+    The device preferences store holds the bearer token for the signed-in
+    account (`src/lib/native-auth.ts`). Capacitor's Preferences plugin keeps it
+    in a SharedPreferences file called CapacitorStorage.xml, which a cloud backup
+    or `adb backup` would otherwise copy off the device — so it is excluded here
+    and re-obtained by signing in again on the restored device.
+
+    The assistant's visitor token and the install id live in the same file; both
+    are regenerated when missing, so excluding the file costs nothing.
+-->
+<full-backup-content>
+    <exclude
+        domain="sharedpref"
+        path="CapacitorStorage.xml" />
+</full-backup-content>

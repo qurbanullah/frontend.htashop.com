@@ -72,6 +72,8 @@ export interface PlaceOrderPayload {
   customer_phone?: string
   shipping_address?: Record<string, unknown>
   billing_address?: Record<string, unknown>
+  /** Optional discount code; the server validates and applies it. */
+  coupon_code?: string
   notes?: string
 }
 
@@ -86,6 +88,12 @@ export interface PlaceOrderResult {
   } | null
   requires_redirect: boolean
   redirect_url: string | null
+  /**
+   * Set when the order was placed but the gateway could not be reached. The
+   * order exists and is payable — the storefront must not claim success, and
+   * must not discard the order either.
+   */
+  payment_error: string | null
 }
 
 function cartHeaders(): Record<string, string> {

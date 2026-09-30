@@ -1,6 +1,8 @@
 import { api, getApiUrl } from '@/api/client'
 import i18n from '@/i18n/config'
 import { parseApiResponse } from '@/lib/api-response'
+import { getChatToken, loadChatToken } from '@/lib/chat-token'
+import { getNativeToken } from '@/lib/native-auth'
 import { readSseStream } from '@/lib/sse'
 
 export type ChatFeedbackValue = 'helpful' | 'unhelpful'
@@ -64,6 +66,40 @@ function genericErrorMessage(): string {
   return i18n.t('chat.error_unavailable')
 }
 
+/**
+ * Visitor identity for assistant requests. Empty on the web, where the API's
+ * httpOnly `chat_visitor` cookie carries it.
+ */
+function visitorHeaders(): Record<string, string> {
+  const token = getChatToken()
+  return token ? { 'X-Chat-Token': token } : {}
+}
+
+/**
+ * Same as `visitorHeaders`, but guarantees the device-stored token has been
+ * read first — otherwise the request would fall back to the API's cookie path
+ * and, on native, land on the shared empty-token visitor.
+ */
+async function readyVisitorHeaders(): Promise<Record<string, string>> {
+  await loadChatToken()
+  return visitorHeaders()
+}
+
+/**
+ * Headers for the streaming endpoint, which uses `fetch` instead of `ky` and so
+ * does not inherit the API client's bearer-token hook.
+ */
+async function streamHeaders(): Promise<Record<string, string>> {
+  const bearer = getNativeToken()
+
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+    ...(await readyVisitorHeaders()),
+    ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+  }
+}
+
 /** Pull the message out of the standard error envelope, if there is one. */
 async function readErrorMessage(response: Response): Promise<string> {
   try {
@@ -80,6 +116,7 @@ export const chatApi = {
   async config(locale: string): Promise<ChatConfigDto> {
     const res = await api.get('chat/config', {
       searchParams: { locale },
+      headers: visitorHeaders(),
       throwHttpErrors: false,
     })
     const body = await parseApiResponse<ChatConfigDto>(res)
@@ -87,19 +124,26 @@ export const chatApi = {
   },
 
   async history(): Promise<ChatHistoryDto> {
-    const res = await api.get('chat/conversation', { throwHttpErrors: false })
+    const res = await api.get('chat/conversation', {
+      headers: await readyVisitorHeaders(),
+      throwHttpErrors: false,
+    })
     const body = await parseApiResponse<ChatHistoryDto>(res)
     return body.data
   },
 
   async reset(): Promise<void> {
-    const res = await api.post('chat/conversation/actions/reset', { throwHttpErrors: false })
+    const res = await api.post('chat/conversation/actions/reset', {
+      headers: await readyVisitorHeaders(),
+      throwHttpErrors: false,
+    })
     await parseApiResponse(res)
   },
 
   async feedback(uuid: string, feedback: ChatFeedbackValue, comment?: string): Promise<void> {
     const res = await api.post(`chat/messages/${encodeURIComponent(uuid)}/actions/feedback`, {
       json: { feedback, comment },
+      headers: await readyVisitorHeaders(),
       throwHttpErrors: false,
     })
     await parseApiResponse(res)
@@ -120,10 +164,7 @@ export async function streamChatMessage(
   const response = await fetch(`${getApiUrl()}/chat/stream`, {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
-    },
+    headers: await streamHeaders(),
     body: JSON.stringify({ message, locale }),
     signal: handlers.signal,
   })
