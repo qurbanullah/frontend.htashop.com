@@ -3,6 +3,7 @@ import type { PaymentMethodOption } from '@/api/payments'
 import { AddressFields } from '@/components/checkout/AddressFields'
 import { CouponField, type CouponStatus } from '@/components/checkout/CouponField'
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector'
+import { Alert } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { AddressFormValue } from '@/lib/address'
@@ -22,6 +23,7 @@ interface Props {
   methodsError: boolean
   onMethodsRetry: () => void
   paymentError?: string
+  notice?: string
   couponCode: string
   onCouponCodeChange: (value: string) => void
   onCouponApply: () => void
@@ -48,6 +50,7 @@ export function PaymentStep({
   methodsError,
   onMethodsRetry,
   paymentError,
+  notice,
   couponCode,
   onCouponCodeChange,
   onCouponApply,
@@ -96,6 +99,11 @@ export function PaymentStep({
         <h3 className="mb-3 font-semibold text-gray-900 text-sm dark:text-white">
           {t('checkout.payment_method')}
         </h3>
+        {notice && (
+          <Alert tone="info" className="mb-3">
+            {notice}
+          </Alert>
+        )}
         {/* Focus target for "choose a payment method" — radios are not focusable
             containers, so the invalid state is announced from here. */}
         <div data-checkout-error tabIndex={-1} className="outline-none">

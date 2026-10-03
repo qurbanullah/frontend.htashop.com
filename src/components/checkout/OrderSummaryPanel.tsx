@@ -78,6 +78,7 @@ function Totals({ subtotal, currency, totals, loading }: TotalsProps) {
 
   const discount = totals?.discount ?? 0
   const tax = totals?.tax ?? 0
+  const dutyEstimate = totals?.duty_estimate ?? 0
   const total = totals?.total ?? subtotal
   const remaining = totals?.amount_until_free_shipping ?? null
 
@@ -133,10 +134,26 @@ function Totals({ subtotal, currency, totals, loading }: TotalsProps) {
         </div>
       )}
 
+      {dutyEstimate > 0 && (
+        <div className="flex items-center justify-between">
+          <dt className="text-gray-600 dark:text-gray-300">{t('summary.duty_estimate')}</dt>
+          <dd className="font-medium text-gray-900 dark:text-white">
+            {formatMoney(dutyEstimate, currency)}
+          </dd>
+        </div>
+      )}
+
       <div className="flex items-center justify-between border-gray-100 border-t pt-3 font-bold text-base text-gray-900 dark:border-gray-800 dark:text-white">
         <dt>{t('summary.total')}</dt>
         <dd>{formatMoney(total, currency)}</dd>
       </div>
+
+      {dutyEstimate > 0 && (
+        <p className="flex items-start gap-1.5 pt-1 text-amber-600 text-xs dark:text-amber-400">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          {t('summary.duty_estimate_note')}
+        </p>
+      )}
 
       {remaining !== null && remaining > 0 && (
         <p className="flex items-start gap-1.5 pt-1 text-green-600 text-xs dark:text-green-400">

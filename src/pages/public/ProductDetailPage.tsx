@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Check,
   ChevronRight,
+  Clock,
   Loader2,
   MessageCircle,
   Minus,
@@ -126,6 +127,7 @@ export default function ProductDetailPage() {
 
   const quoteSubject = encodeURIComponent(t('product.quote_subject', { name: product.name }))
 
+  const isOnDemand = product.sourcing != null && product.sourcing !== 'in_stock'
   const isInStock = !stock?.track_inventory || stock.available > 0
   const metaDescription = (product.summary || product.description || '')
     .replace(/\s+/g, ' ')
@@ -374,17 +376,24 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="mt-4 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-sm ${
-                  stock?.track_inventory && stock.available <= 0
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                    : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                }`}
-              >
-                <Check className="h-3.5 w-3.5" />
-                {stockLabel}
-              </span>
-              {stock?.track_inventory && stock.available > 0 && (
+              {isOnDemand ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-700 text-sm dark:bg-blue-900/30 dark:text-blue-400">
+                  <Clock className="h-3.5 w-3.5" />
+                  {product.availability ?? stockLabel}
+                </span>
+              ) : (
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-sm ${
+                    stock?.track_inventory && stock.available <= 0
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  }`}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  {stockLabel}
+                </span>
+              )}
+              {!isOnDemand && stock?.track_inventory && stock.available > 0 && (
                 <span className="text-gray-500 text-sm dark:text-gray-400">
                   {t('product.units_available', { count: stock.available })}
                 </span>
@@ -449,6 +458,13 @@ export default function ProductDetailPage() {
               <Truck className="h-4 w-4" />
               {t('product.request_quote')}
             </a>
+            <Link
+              to={paths.sourcing}
+              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+            >
+              <Package className="h-4 w-4" />
+              {t('product.source_kit')}
+            </Link>
             <a
               href={`mailto:${COMPANY.email}?subject=${quoteSubject}`}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"

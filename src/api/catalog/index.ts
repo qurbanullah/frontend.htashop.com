@@ -14,6 +14,9 @@ export interface CatalogProduct {
   price: number | string | null
   sale_price: number | string | null
   currency: string | null
+  sourcing?: string
+  lead_time_days?: number | null
+  availability?: string | null
   image_url: string | null
   image_urls?: ImageUrls | null
   categories?: Array<{ id: number; name: string; slug: string }>

@@ -12,6 +12,7 @@ const PostListPage = lazy(() => import('@/pages/public/PostListPage'))
 const PostDetailPage = lazy(() => import('@/pages/public/PostDetailPage'))
 const ContactPage = lazy(() => import('@/pages/public/ContactPage'))
 const FeedbackPage = lazy(() => import('@/pages/public/FeedbackPage'))
+const SourcingRequestPage = lazy(() => import('@/pages/public/SourcingRequestPage'))
 const UnsubscribePage = lazy(() => import('@/pages/public/UnsubscribePage'))
 const CheckoutPage = lazy(() => import('@/pages/public/CheckoutPage'))
 const PaymentReturnPage = lazy(() => import('@/pages/public/PaymentReturnPage'))
@@ -44,6 +45,7 @@ export function PublicRoutes() {
 
         <Route path={paths.contact} element={<ContactPage />} />
         <Route path={paths.feedback} element={<FeedbackPage />} />
+        <Route path={paths.sourcing} element={<SourcingRequestPage />} />
         <Route path={paths.unsubscribe} element={<UnsubscribePage />} />
         <Route path={paths.checkout} element={<CheckoutPage />} />
         {/* Hosted gateways redirect back to these; both reconcile against the

@@ -367,11 +367,27 @@ export default function CheckoutPage() {
   const methods = useMemo(() => methodsQuery.data ?? [], [methodsQuery.data])
 
   /**
+   * Import-on-demand items are paid for before the goods are ordered from the
+   * supplier, so cash on delivery is not offered for them (the backend also
+   * refuses it). Filtering here keeps the selector honest instead of showing a
+   * method the customer can never complete with.
+   */
+  const cartHasAdvancePayment = useMemo(
+    () => items.some((item) => item.requires_advance_payment === true),
+    [items]
+  )
+
+  const availableMethods = useMemo(
+    () => (cartHasAdvancePayment ? methods.filter((method) => method.method !== 'cod') : methods),
+    [methods, cartHasAdvancePayment]
+  )
+
+  /**
    * Whether there is a payment method to choose from. React Query keeps the
    * last good list when a *refetch* fails, so a transient blip must not blank
    * out the options for a customer who already had them.
    */
-  const methodsReady = methods.length > 0
+  const methodsReady = availableMethods.length > 0
   const methodsUnavailable = methodsQuery.isError && !methodsReady
 
   /**
@@ -434,9 +450,9 @@ export default function CheckoutPage() {
 
   // Keep the selection valid: the default is whatever the API lists first.
   useEffect(() => {
-    const next = fallbackPaymentMethod(methods, values.payment_method)
+    const next = fallbackPaymentMethod(availableMethods, values.payment_method)
     if (next) setValues((previous) => ({ ...previous, payment_method: next }))
-  }, [methods, values.payment_method])
+  }, [availableMethods, values.payment_method])
 
   const clearError = useCallback((path: string) => {
     setErrors((previous) => {
@@ -575,7 +591,8 @@ export default function CheckoutPage() {
   const shippingErrors = translateFieldErrors(errors, 'shipping', t)
   const billingErrors = translateFieldErrors(errors, 'billing', t)
 
-  const selectedMethod = methods.find((method) => method.method === values.payment_method) ?? null
+  const selectedMethod =
+    availableMethods.find((method) => method.method === values.payment_method) ?? null
 
   const primaryLabel = t(primaryActionKey(step, status), {
     gateway: selectedMethod?.label ?? '',
@@ -699,7 +716,7 @@ export default function CheckoutPage() {
                 billing={values.billing}
                 onBillingChange={updateAddress('billing')}
                 billingErrors={billingErrors}
-                methods={methods}
+                methods={availableMethods}
                 paymentMethod={values.payment_method}
                 onPaymentMethodChange={(paymentMethod) => {
                   setValues((previous) => ({ ...previous, payment_method: paymentMethod }))
@@ -709,6 +726,7 @@ export default function CheckoutPage() {
                 methodsError={methodsUnavailable}
                 onMethodsRetry={() => void methodsQuery.refetch()}
                 paymentError={errors.payment_method ? t(errors.payment_method) : undefined}
+                notice={cartHasAdvancePayment ? t('checkout.cod_unavailable_on_demand') : undefined}
                 couponCode={values.coupon_code}
                 onCouponCodeChange={(couponCode) => {
                   setValues((previous) => ({ ...previous, coupon_code: couponCode }))

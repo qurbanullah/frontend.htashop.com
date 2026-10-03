@@ -65,6 +65,12 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           </p>
         )}
 
+        {product.sourcing && product.sourcing !== 'in_stock' && product.availability && (
+          <p className="mt-1.5 font-medium text-blue-600 text-xs dark:text-blue-400">
+            {product.availability}
+          </p>
+        )}
+
         <div className="mt-4 flex items-center justify-between gap-3 pt-3">
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-gray-900 text-lg dark:text-white">

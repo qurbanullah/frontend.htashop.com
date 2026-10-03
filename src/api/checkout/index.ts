@@ -22,6 +22,8 @@ export interface CheckoutQuote {
   amount_until_free_shipping: number | null
   coupon_code: string | null
   coupon_label: string | null
+  duty_estimate?: number
+  landed_cost?: number
 }
 
 export const checkoutApi = {

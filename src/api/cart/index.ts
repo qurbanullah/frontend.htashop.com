@@ -17,6 +17,7 @@ export interface CartItem {
   sku: string | null
   variant_name: string | null
   image_url: string | null
+  requires_advance_payment?: boolean
 }
 
 export interface CartData {

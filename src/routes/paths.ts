@@ -35,6 +35,7 @@ export const paths = {
   // Support
   contact: '/contact',
   feedback: '/feedback',
+  sourcing: '/sourcing',
   unsubscribe: '/unsubscribe/:token',
 
   // Legal / compliance
