@@ -117,7 +117,7 @@ export const authApi = {
       return {
         success: false,
         exists: false,
-        message: body?.message ?? i18n.t('check_account.error_generic'),
+        message: body?.message ?? i18n.t('check_account.error_generic', { ns: 'auth' }),
       }
     }
     return body

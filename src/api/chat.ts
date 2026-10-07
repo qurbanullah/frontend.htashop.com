@@ -63,7 +63,7 @@ export interface ChatStreamHandlers {
 
 /** Resolved lazily so the message follows the language active when it fails. */
 function genericErrorMessage(): string {
-  return i18n.t('chat.error_unavailable')
+  return i18n.t('chat.error_unavailable', { ns: 'chat' })
 }
 
 /**

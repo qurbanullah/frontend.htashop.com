@@ -4,14 +4,30 @@ import { useLocation } from 'react-router-dom'
 import { CartDrawer } from '@/components/cart/CartDrawer'
 import { ConsentManager } from '@/components/consent/ConsentManager'
 import { CategoryDrawer } from '@/components/layouts/leftbar/CategoryDrawer'
+import { AuthFooter } from '@/components/shared/AuthFooter'
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 import { Footer } from '@/components/shared/Footer'
 import OfflineBanner from '@/components/shared/OfflineBanner'
 import { SupportAssistantWidget } from '@/components/support/SupportAssistantWidget'
 import { ToasterProvider } from '@/components/ui/Toaster'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { paths } from '@/routes/paths'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
+
+/**
+ * Routes that render `AuthLayout`. On these the full storefront footer is
+ * replaced with the slim `AuthFooter`, so the focused auth task is not buried
+ * under the marketing footer — the same treatment the manage/admin portals use.
+ */
+const AUTH_ROUTE_PATHS = new Set<string>([
+  paths.login,
+  paths.register,
+  paths.checkAccount,
+  paths.forgotPassword,
+  paths.resetPassword,
+  paths.verifyEmail,
+])
 
 interface RootLayoutProps {
   children: ReactNode
@@ -20,6 +36,7 @@ interface RootLayoutProps {
 export function RootLayout({ children }: RootLayoutProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const location = useLocation()
+  const isAuthRoute = AUTH_ROUTE_PATHS.has(location.pathname)
 
   // Re-sync the cart when auth state changes (login/logout swaps the cart owner)
   // biome-ignore lint/correctness/useExhaustiveDependencies: isAuthenticated is an intentional effect trigger
@@ -36,7 +53,7 @@ export function RootLayout({ children }: RootLayoutProps) {
         <ToasterProvider>
           <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
             <div className="flex flex-1 flex-col">{children}</div>
-            <Footer />
+            {isAuthRoute ? <AuthFooter /> : <Footer />}
           </div>
           <CartDrawer />
           <CategoryDrawer />

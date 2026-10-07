@@ -27,7 +27,7 @@ export type ChatStatus = 'idle' | 'loading' | 'streaming'
 
 /** Resolved lazily so the banner follows the language active when it fails. */
 function genericErrorMessage(): string {
-  return i18n.t('chat.error_generic')
+  return i18n.t('chat.error_generic', { ns: 'chat' })
 }
 
 const SUPPORTED_LOCALES = ['en', 'de', 'ur']

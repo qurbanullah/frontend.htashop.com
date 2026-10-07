@@ -17,7 +17,10 @@ import { useAuthStore } from '@/stores/auth'
 // Every fallback below is resolved lazily through i18n, so a message set at the
 // moment of failure is rendered in whichever language is active then.
 function t(key: string): string {
-  return i18n.t(key)
+  // These are all `auth`-namespace keys, but the i18next instance defaults to the
+  // `common` namespace, so the namespace must be named here — otherwise i18next
+  // finds no match and returns the key itself (e.g. "register.email_taken").
+  return i18n.t(key, { ns: 'auth' })
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -93,7 +96,7 @@ export function useAuth() {
         setError,
         setValidationErrors,
         t('login.error_generic'),
-        t('auth.common.error_network')
+        t('common.error_network')
       )
       return { success: false, message }
     } finally {
@@ -134,7 +137,7 @@ export function useAuth() {
         setError,
         setValidationErrors,
         t('register.error_generic'),
-        t('auth.common.error_network')
+        t('common.error_network')
       )
       return { success: false, message }
     } finally {
@@ -174,12 +177,12 @@ export function useAuth() {
         updateUser(response.data)
         return { success: true, user: response.data }
       }
-      setError(t('auth.common.error_fetch_user'))
+      setError(t('common.error_fetch_user'))
       return { success: false }
     } catch (error: unknown) {
       console.error('Get user error:', error)
-      setError(t('auth.common.error_fetch_user'))
-      return { success: false, message: getErrorMessage(error, t('auth.common.error_fetch_user')) }
+      setError(t('common.error_fetch_user'))
+      return { success: false, message: getErrorMessage(error, t('common.error_fetch_user')) }
     } finally {
       setLoading(false)
     }
