@@ -446,7 +446,7 @@ export default function ProductSearchPage() {
     max_price: '',
     sort: 'newest',
     page: 1,
-    per_page: 12,
+    per_page: 20,
   })
 
   useEffect(() => {
@@ -516,7 +516,7 @@ export default function ProductSearchPage() {
   }
 
   // Only the first page of results is exposed as structured data.
-  const itemListEntries = products.slice(0, 12)
+  const itemListEntries = products.slice(0, 15)
 
   const itemListLd = {
     '@context': 'https://schema.org',

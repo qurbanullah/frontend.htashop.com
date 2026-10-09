@@ -140,7 +140,7 @@ function RegisterFormFields({
               type="text"
               placeholder={t('register.first_name_placeholder')}
               {...register('first_name')}
-              className={`h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.first_name))}`}
+              className={`h-11 bg-gray-50 ps-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.first_name))}`}
             />
           </div>
           {errors.first_name && (
@@ -163,7 +163,7 @@ function RegisterFormFields({
               type="text"
               placeholder={t('register.last_name_placeholder')}
               {...register('last_name')}
-              className={`h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.last_name))}`}
+              className={`h-11 bg-gray-50 ps-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.last_name))}`}
             />
           </div>
           {errors.last_name && (
@@ -183,7 +183,7 @@ function RegisterFormFields({
               type="email"
               placeholder={t('common.email_placeholder')}
               {...register('email')}
-              className={`h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.email))}`}
+              className={`h-11 bg-gray-50 ps-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.email))}`}
             />
           </div>
           {errors.email && (
@@ -208,7 +208,7 @@ function RegisterFormFields({
               {...register('password')}
               aria-invalid={Boolean(errors.password)}
               aria-describedby="password-error"
-              className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.password))}`}
+              className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.password))}`}
             />
             <button
               type="button"
@@ -243,7 +243,7 @@ function RegisterFormFields({
               {...register('password_confirmation')}
               aria-invalid={Boolean(errors.password_confirmation)}
               aria-describedby="password-confirmation-error"
-              className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.password_confirmation))}`}
+              className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${inputErrorClass(Boolean(errors.password_confirmation))}`}
             />
             <button
               type="button"

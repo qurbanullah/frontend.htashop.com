@@ -119,7 +119,7 @@ export default function Login() {
                   {...register('email')}
                   aria-invalid={Boolean(errors.email)}
                   aria-describedby="email-error"
-                  className={`h-11 bg-gray-50 ps-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.email ? 'border-red-500' : ''}`}
+                  className={`h-11 bg-gray-50 ps-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${errors.email ? 'border-red-500' : ''}`}
                 />
               </div>
               {errors.email && (
@@ -154,7 +154,7 @@ export default function Login() {
                   {...register('password')}
                   aria-invalid={Boolean(errors.password)}
                   aria-describedby="password-error"
-                  className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white dark:bg-gray-900 dark:focus:bg-gray-800 ${errors.password ? 'border-red-500' : ''}`}
+                  className={`h-11 bg-gray-50 ps-10 pe-10 focus:bg-white focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:bg-gray-900 dark:focus-visible:ring-sky-400 dark:focus:bg-gray-800 ${errors.password ? 'border-red-500' : ''}`}
                 />
                 <button
                   type="button"

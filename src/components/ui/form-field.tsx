@@ -75,7 +75,11 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
             onChange={onChange}
             disabled={disabled}
             rows={rows}
-            className={cn(inputClassName, error && 'border-red-500 focus-visible:ring-red-500')}
+            className={cn(
+              'focus:border-sky-500 focus:ring-sky-500 dark:focus:border-sky-400 dark:focus:ring-sky-400',
+              inputClassName,
+              error && 'border-red-500 focus-visible:ring-red-500'
+            )}
           />
         ) : type === 'select' ? (
           <select
@@ -85,7 +89,7 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
             onChange={onChange}
             disabled={disabled}
             className={cn(
-              'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:focus-visible:ring-blue-600',
+              'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:focus-visible:ring-sky-400',
               error && 'border-red-500 focus-visible:ring-red-500',
               inputClassName
             )}
@@ -106,7 +110,11 @@ export const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
             value={value}
             onChange={onChange}
             disabled={disabled}
-            className={cn(error && 'border-red-500 focus-visible:ring-red-500', inputClassName)}
+            className={cn(
+              'focus-visible:ring-sky-500 focus-visible:ring-offset-0 dark:focus-visible:ring-sky-400',
+              error && 'border-red-500 focus-visible:ring-red-500',
+              inputClassName
+            )}
           />
         )}
 
