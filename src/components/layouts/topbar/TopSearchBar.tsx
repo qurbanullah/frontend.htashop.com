@@ -326,12 +326,12 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
         <div ref={searchRef} className="relative w-full min-w-0 flex-1">
           <form
             onSubmit={submitSearch}
-            className="flex items-stretch overflow-hidden rounded-lg ps-6 sm:mx-auto sm:max-w-6xl"
+            className="flex items-stretch overflow-hidden rounded-lg transition-shadow focus-within:ring-2 focus-within:ring-sky-500 sm:mx-auto sm:max-w-6xl dark:focus-within:ring-sky-400"
           >
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="hidden w-40 shrink-0 border-gray-300 border-e bg-gray-100 px-3 text-gray-700 text-sm outline-none sm:block dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+              className="hidden w-40 shrink-0 bg-gray-100 px-3 text-gray-700 text-sm outline-none sm:block dark:bg-gray-800 dark:text-gray-200"
               aria-label={t('shell.search_category')}
             >
               <option value="">{t('shell.all')}</option>

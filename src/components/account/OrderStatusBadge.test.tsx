@@ -31,12 +31,6 @@ describe('OrderStatusBadge', () => {
     expect(screen.getByText('ڈیلیور ہو گیا')).toBeInTheDocument()
   })
 
-  it('translates known statuses into German', async () => {
-    await setLang('de')
-    render(<OrderStatusBadge status="cancelled" />)
-    expect(screen.getByText('Storniert')).toBeInTheDocument()
-  })
-
   it('falls back to the raw status for values we have no label for', async () => {
     await setLang('en')
     render(<OrderStatusBadge status="awaiting_stock" />)

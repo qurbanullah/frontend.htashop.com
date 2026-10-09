@@ -1,9 +1,6 @@
 import i18n from 'i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { initReactI18next } from 'react-i18next'
-import deAuth from './locales/de/auth.json'
-import deChat from './locales/de/chat.json'
-import deCommon from './locales/de/common.json'
 import enAuth from './locales/en/auth.json'
 // Import translation files
 import enChat from './locales/en/chat.json'
@@ -13,6 +10,9 @@ import urChat from './locales/ur/chat.json'
 import urCommon from './locales/ur/common.json'
 
 // Translation resources
+// German (`de`) is intentionally not loaded — see `supportedLngs`. Its
+// translations still live in `locales/de/` (and are parity-tested), so
+// re-enabling is just re-adding the imports and a `de` entry here.
 const resources = {
   en: {
     common: enCommon,
@@ -24,11 +24,6 @@ const resources = {
     auth: urAuth,
     chat: urChat,
   },
-  de: {
-    common: deCommon,
-    auth: deAuth,
-    chat: deChat,
-  },
 }
 
 // Initialize i18next
@@ -38,7 +33,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en', // Default language
-    supportedLngs: ['en', 'ur', 'de'], // Supported languages
+    supportedLngs: ['en', 'ur'], // Supported languages (German disabled)
     debug: false, // Enable debug in development manually if needed
 
     // Namespace configuration
@@ -92,17 +87,21 @@ export const getLanguageName = (code: string): string => {
   const languages: Record<string, string> = {
     en: 'English',
     ur: 'اردو', // Urdu in native script
-    de: 'Deutsch', // German in native script
   }
   return languages[code] || code
 }
 
-// Helper to get language flag emoji
-export const getLanguageFlag = (code: string): string => {
-  const flags: Record<string, string> = {
-    en: '🇬🇧',
+/**
+ * Short badge for the language switcher.
+ *
+ * A flag emoji where one reads well; English uses the code instead because the
+ * GB flag does not read as "English" (and renders as the letters "GB" on
+ * systems without a flag-emoji font).
+ */
+export const getLanguageBadge = (code: string): string => {
+  const badges: Record<string, string> = {
+    en: 'EN',
     ur: '🇵🇰', // Pakistan flag for Urdu
-    de: '🇩🇪', // Germany flag for German/Dutch
   }
-  return flags[code] || '🌐'
+  return badges[code] || '🌐'
 }

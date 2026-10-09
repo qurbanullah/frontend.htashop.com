@@ -129,9 +129,18 @@ html {
     display: none;
 }
 
-:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: 2px;
+/* Global focus outline.
+
+   Kept inside `@layer base` on purpose: an *unlayered* rule wins over every
+   Tailwind layer regardless of specificity, so while this sat at the top level
+   it silently defeated `outline-none` on any control that opted out to draw its
+   own ring — the control showed both the ring and this blue outline. Inside
+   `base`, ordinary utilities can override it as expected. */
+@layer base {
+    :focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
 }
 
 [data-toast-portal] {

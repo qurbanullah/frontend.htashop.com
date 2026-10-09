@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { getLanguageFlag } from '@/i18n/config'
+import { getLanguageBadge } from '@/i18n/config'
 
 interface Language {
   code: string
@@ -9,20 +9,16 @@ interface Language {
 
 const DEFAULT_LANGUAGE: Language = { code: 'en', name: 'English' }
 
-const languages: Language[] = [
-  DEFAULT_LANGUAGE,
-  { code: 'ur', name: 'اردو' },
-  { code: 'de', name: 'Deutsch' },
-]
+const languages: Language[] = [DEFAULT_LANGUAGE, { code: 'ur', name: 'اردو' }]
 
 /**
- * Flag emoji rather than flagcdn.com images: no third-party request (and no
- * visitor-IP leak) for what is purely decorative chrome.
+ * Emoji/text badge rather than flagcdn.com images: no third-party request (and
+ * no visitor-IP leak) for what is purely decorative chrome.
  */
-function FlagIcon({ languageCode }: { languageCode: string }) {
+function LanguageBadge({ languageCode }: { languageCode: string }) {
   return (
     <span aria-hidden="true" className="inline-block text-base leading-none">
-      {getLanguageFlag(languageCode)}
+      {getLanguageBadge(languageCode)}
     </span>
   )
 }
@@ -69,7 +65,7 @@ export function LanguageSwitcher() {
         aria-haspopup="menu"
         title={current.name}
       >
-        <FlagIcon languageCode={current.code} />
+        <LanguageBadge languageCode={current.code} />
       </button>
 
       {isOpen && (
@@ -90,7 +86,7 @@ export function LanguageSwitcher() {
               }`}
               title={language.name}
             >
-              <FlagIcon languageCode={language.code} />
+              <LanguageBadge languageCode={language.code} />
               <span className="flex-1 text-start font-medium text-sm dark:text-gray-100">
                 {language.name}
               </span>
