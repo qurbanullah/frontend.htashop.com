@@ -23,6 +23,13 @@ import {
   EMPTY_ADDRESS,
   toAddressPayload,
 } from '@/lib/address'
+import {
+  getAnonymousId,
+  getCampaign,
+  getSessionId,
+  hasAnalyticsConsent,
+  track,
+} from '@/lib/analytics/collector'
 import { isApiError } from '@/lib/api-response'
 import {
   type CheckoutFormValues,
@@ -135,6 +142,15 @@ function buildOrderPayload(
     billing_address: values.billingSame ? shipping : toAddressPayload(values.billing),
     coupon_code: values.coupon_code.trim() || undefined,
     notes: values.notes.trim() || undefined,
+    ...(hasAnalyticsConsent()
+      ? {
+          analytics: {
+            session_id: getSessionId(),
+            anonymous_id: getAnonymousId(),
+            campaign: getCampaign(),
+          },
+        }
+      : {}),
   }
 }
 
@@ -453,6 +469,19 @@ export default function CheckoutPage() {
     const next = fallbackPaymentMethod(availableMethods, values.payment_method)
     if (next) setValues((previous) => ({ ...previous, payment_method: next }))
   }, [availableMethods, values.payment_method])
+
+  // One begin_checkout event per visit, once the cart has hydrated.
+  const trackedCheckout = useRef(false)
+  useEffect(() => {
+    if (trackedCheckout.current || items.length === 0) return
+
+    trackedCheckout.current = true
+
+    track('begin_checkout', {
+      cart: { items: items.length, value: subtotal, currency },
+      page: { path: '/checkout' },
+    })
+  }, [items.length, subtotal, currency])
 
   const clearError = useCallback((path: string) => {
     setErrors((previous) => {

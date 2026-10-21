@@ -75,6 +75,12 @@ export interface PlaceOrderPayload {
   /** Optional discount code; the server validates and applies it. */
   coupon_code?: string
   notes?: string
+  /** Consent-gated first-party attribution; ignored when absent. */
+  analytics?: {
+    session_id?: string
+    anonymous_id?: string
+    campaign?: Record<string, string>
+  }
 }
 
 export interface PlaceOrderResult {

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { initAnalytics } from '@/lib/analytics/collector'
 import { AppRouter } from '@/routes'
 import { useAuthStore } from '@/stores/auth'
 
@@ -11,6 +12,7 @@ export default function App() {
 
   useEffect(() => {
     void initialize()
+    initAnalytics()
   }, [initialize])
 
   return <AppRouter />

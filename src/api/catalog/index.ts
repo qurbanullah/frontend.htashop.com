@@ -1,4 +1,5 @@
 import api from '@/api/client'
+import { getSessionId, hasAnalyticsConsent } from '@/lib/analytics/collector'
 import { parseApiResponse } from '@/lib/api-response'
 import type { ImageUrls } from '@/lib/image-srcset'
 
@@ -169,13 +170,23 @@ function toSearchEndpointParams(
   if (page) searchParams.set('page', String(page))
   if (per_page) searchParams.set('per_page', String(per_page))
 
+  appendAnalyticsParams(searchParams)
+
   return searchParams
+}
+
+function appendAnalyticsParams(searchParams: URLSearchParams): void {
+  const consent = hasAnalyticsConsent()
+  searchParams.set('analytics_consent', consent ? '1' : '0')
+  if (consent) searchParams.set('session_id', getSessionId())
 }
 
 export const catalogApi = {
   async suggest(query: string, categoryId?: number, limit = 8): Promise<SearchSuggestion[]> {
     const searchParams = new URLSearchParams({ q: query, limit: String(limit) })
     if (categoryId) searchParams.set('category_id', String(categoryId))
+
+    appendAnalyticsParams(searchParams)
 
     const res = await api.get('search/suggest', { searchParams })
     const body = await parseApiResponse<{ data: SearchSuggestion[] }>(res)
@@ -211,8 +222,14 @@ export const catalogApi = {
   },
 
   async recordSearchClick(query: string, productId: number, sessionId?: string): Promise<void> {
-    const body = new URLSearchParams({ q: query, product_id: String(productId) })
-    if (sessionId) body.set('session_id', sessionId)
+    const consent = hasAnalyticsConsent()
+    const body = new URLSearchParams({
+      q: query,
+      product_id: String(productId),
+      analytics_consent: consent ? '1' : '0',
+    })
+    const resolvedSessionId = sessionId ?? (consent ? getSessionId() : undefined)
+    if (resolvedSessionId) body.set('session_id', resolvedSessionId)
 
     const res = await api.post('search/click', { body })
     await parseApiResponse(res)

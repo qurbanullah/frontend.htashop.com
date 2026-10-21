@@ -12,7 +12,7 @@ import {
   Truck,
   ZoomIn,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { catalogApi } from '@/api/catalog'
@@ -21,6 +21,7 @@ import { BannerZone } from '@/components/banners/BannerRenderer'
 import { ProductImageModal } from '@/components/catalog/ProductImageModal'
 import { ProductReviews } from '@/components/catalog/ProductReviews'
 import { Seo, siteUrl } from '@/components/seo/Seo'
+import { track } from '@/lib/analytics/collector'
 import { COMPANY } from '@/lib/company'
 import { buildSrcset, PRODUCT_IMAGE_LADDER, preferUrl } from '@/lib/image-srcset'
 import { formatMoney } from '@/lib/money'
@@ -54,6 +55,25 @@ export default function ProductDetailPage() {
     enabled: Boolean(slugUuid),
     staleTime: 5 * 60 * 1000,
   })
+
+  const trackedProductId = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!product || trackedProductId.current === product.id) return
+
+    trackedProductId.current = product.id
+
+    track('product_view', {
+      product: {
+        id: product.id,
+        name: product.name,
+        price: Number(product.price ?? 0),
+        currency: product.currency ?? 'PKR',
+        category_id: product.categories?.[0]?.id,
+      },
+      page: { path: `/products/${product.route_key}` },
+    })
+  }, [product])
 
   if (isLoading) {
     return (
@@ -437,13 +457,32 @@ export default function ProductDetailPage() {
 
             <button
               type="button"
-              onClick={() =>
-                addToCart({
+              onClick={() => {
+                const currency = selectedVariant?.currency ?? product.currency ?? 'PKR'
+
+                track('add_to_cart', {
+                  product: {
+                    id: product.id,
+                    variant_id: selectedVariant?.id ?? null,
+                    name: product.name,
+                    price: displayPrice,
+                    currency,
+                    category_id: product.categories?.[0]?.id,
+                  },
+                  cart: {
+                    items: quantity,
+                    value: displayPrice * quantity,
+                    currency,
+                  },
+                  page: { path: `/products/${product.route_key}` },
+                })
+
+                void addToCart({
                   product_id: product.id,
                   variant_id: selectedVariant?.id ?? null,
                   quantity,
                 })
-              }
+              }}
               disabled={cartLoading}
               className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
             >
