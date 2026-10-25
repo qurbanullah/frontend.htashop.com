@@ -3,11 +3,13 @@ import type { ConsentCategories } from '@/lib/consent/constants'
 /**
  * Consent-gated tracker management.
  *
- * No non-essential script may load or send data before the user has
- * consented. This module gates the trackers it owns:
+ * No non-essential tracker may store data before the user has consented. GA4 is
+ * bootstrapped from the built index.html with a denied Consent Mode default (so
+ * Google can detect the tag); it only collects after consent and is unloaded on
+ * revoke. This module gates the trackers it owns:
  *
  *   analytics → Sentry (errors/tracing/replay). GA4 lives in `@/lib/analytics`
- *               and subscribes to the same consent store itself.
+ *               and subscribes to the consent store itself.
  *   marketing → Meta (Facebook) Pixel
  *   necessary/preferences → no scripts (theme/language live in localStorage)
  *

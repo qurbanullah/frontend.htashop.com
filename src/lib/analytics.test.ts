@@ -45,6 +45,7 @@ describe('Google Analytics 4', () => {
     delete window.gtag
     delete window.dataLayer
     delete (window as Window & { __PRERENDER__?: boolean }).__PRERENDER__
+    delete (window as Window & { __htashopGaBootstrapped?: boolean }).__htashopGaBootstrapped
   })
 
   it('does not load gtag before analytics consent', () => {
@@ -96,6 +97,22 @@ describe('Google Analytics 4', () => {
     trackEvent('add_to_cart', { value: 10, currency: 'PKR' })
 
     expect(eventCalls('add_to_cart')).toHaveLength(1)
+  })
+
+  it('reuses the production bootstrap instead of configuring gtag twice', () => {
+    const script = document.createElement('script')
+    script.dataset.gdprGa4 = 'true'
+    document.head.appendChild(script)
+    ;(window as Window & { __htashopGaBootstrapped?: boolean }).__htashopGaBootstrapped = true
+
+    setAnalyticsConsent(true)
+    trackPageView('/')
+
+    expect(gaScriptCount()).toBe(1)
+    expect(gtag).not.toHaveBeenCalledWith('consent', 'default', expect.any(Object))
+    expect(gtag).not.toHaveBeenCalledWith('config', 'G-TEST123', expect.any(Object))
+    expect(gtag).toHaveBeenCalledWith('consent', 'update', expect.any(Object))
+    expect(eventCalls('page_view')).toHaveLength(1)
   })
 
   it('removes the tag and disables collection when consent is revoked', () => {

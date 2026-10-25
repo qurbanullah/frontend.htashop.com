@@ -8,11 +8,11 @@ import { isGranted, isPrerender, subscribe } from './consent'
  * all gtag.js needs; the data-stream ID is only used by the Measurement
  * Protocol.
  *
- * gtag.js is injected ONLY after the visitor has granted `analytics` consent.
- * A denied Consent Mode default is declared before any tag runs and updated
- * when the preference changes. Revoking consent removes the script and clears
- * the queue, so no further hits can be sent. Prerender/headless traffic never
- * produces human page views.
+ * In production builds, `index.html` bootstraps gtag.js with a denied Consent
+ * Mode v2 default so Google can detect the tag before the visitor answers the
+ * cookie banner. Page views and events stay withheld until `analytics` consent
+ * is granted, and the consent state is updated whenever it changes. Revoking
+ * consent removes the tag script and clears the queue.
  */
 const DEFAULT_GA_ID = 'G-XE1P8GG082'
 
@@ -28,6 +28,7 @@ type Gtag = (...args: unknown[]) => void
 type GtagWindow = Window & {
   dataLayer?: unknown[]
   gtag?: Gtag
+  __htashopGaBootstrapped?: boolean
 }
 
 interface ConsentModeState {
@@ -123,6 +124,17 @@ function loadGtag(): boolean {
   const id = getGaId()
   if (!id) return false
   if (loaded) return true
+
+  const w = window as GtagWindow
+  const bootstrapped = w.__htashopGaBootstrapped === true
+  if (bootstrapped && document.querySelector('script[data-gdpr-ga4]')) {
+    // The production HTML bootstrap already declared the denied Consent Mode
+    // default and queued `config` before gtag.js loaded. Re-declaring them
+    // would duplicate the commands.
+    setGaDisabled(id, false)
+    loaded = true
+    return true
+  }
 
   const gtag = getGtag()
 
