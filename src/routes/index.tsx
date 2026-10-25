@@ -13,7 +13,6 @@ export function AppRouter() {
   return (
     <>
       <ScrollRestoration />
-      <PageViewTracker />
       <DeepLinkHandler />
       <RootLayout>
         <Suspense fallback={<PageSpinner />}>
@@ -24,6 +23,8 @@ export function AppRouter() {
           </Routes>
         </Suspense>
       </RootLayout>
+      {/* After the layout, so page <Seo> effects have set document.title. */}
+      <PageViewTracker />
     </>
   )
 }

@@ -5,12 +5,17 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './i18n/config' // Initialize i18n
+import { installChunkReloadHandler } from '@/lib/chunk-reload'
 import { queryClient } from '@/lib/query-client'
 import { useConsentStore } from '@/stores/consent' // Initialize consent store
 import { applyConsent } from './lib/consent/analytics'
 import { validateEnvironment } from './lib/env' // Environment validation
 import { isNativePlatform } from './lib/native'
 import { initNativeApp, prepareNativeShell } from './lib/native-app'
+
+// A stale index.html after a deploy makes lazy chunks 404. Reload once to pick
+// up the new shell; the guard prevents a loop if the deploy is incomplete.
+installChunkReloadHandler()
 
 // GDPR: gate all non-essential trackers (Sentry, GA4, Meta Pixel) behind the
 // user's stored consent choice. This runs before first paint; the live

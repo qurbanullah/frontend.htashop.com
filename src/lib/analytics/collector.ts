@@ -1,4 +1,5 @@
 import { getApiUrl } from '@/api/client'
+import { trackEvent as trackGaEvent } from '@/lib/analytics'
 import { useConsentStore } from '@/stores/consent'
 import type { AnalyticsEvent, AnalyticsEventName } from './events'
 
@@ -151,6 +152,12 @@ export function track(eventName: AnalyticsEventName, context: EventContext = {})
   }
 
   scheduleFlush()
+
+  // Mirror the event to GA4. `page_view` is omitted: PageViewTracker sends GA
+  // page views through `trackPageView`, which uses `page_location`.
+  if (eventName !== 'page_view') {
+    trackGaEvent(GA_EVENT_NAMES[eventName] ?? eventName, toGaParams(context))
+  }
 }
 
 export function initAnalytics(): void {
@@ -223,6 +230,84 @@ function scheduleFlush(): void {
     timer = null
     void flush()
   }, FLUSH_DELAY_MS)
+}
+
+/**
+ * First-party event → GA4 event name. Unlisted events keep their own name
+ * (GA4 accepts custom snake_case events). `page_view` is intentionally absent.
+ */
+const GA_EVENT_NAMES: Partial<Record<AnalyticsEventName, string>> = {
+  product_view: 'view_item',
+  product_impression: 'view_item_list',
+  search_click: 'select_item',
+}
+
+/** Flatten the first-party context into GA4 event parameters. */
+function toGaParams(context: EventContext): Record<string, unknown> {
+  const product = asRecord(context.product)
+  const cart = asRecord(context.cart)
+  const search = asRecord(context.search)
+
+  return {
+    ...gaProductParams(product, cart),
+    ...gaCartParams(cart),
+    ...gaSearchParams(search),
+  }
+}
+
+function gaProductParams(
+  product: Record<string, unknown> | null,
+  cart: Record<string, unknown> | null
+): Record<string, unknown> {
+  if (!product) return {}
+
+  const quantity = typeof cart?.items === 'number' && cart.items > 0 ? cart.items : 1
+  const params: Record<string, unknown> = { items: [gaItem(product, quantity)] }
+  if (typeof product.currency === 'string') params.currency = product.currency
+
+  return params
+}
+
+function gaCartParams(cart: Record<string, unknown> | null): Record<string, unknown> {
+  if (!cart) return {}
+
+  const params: Record<string, unknown> = {}
+  if (typeof cart.value === 'number') params.value = cart.value
+  if (typeof cart.currency === 'string') params.currency = cart.currency
+
+  return params
+}
+
+function gaSearchParams(search: Record<string, unknown> | null): Record<string, unknown> {
+  if (!search) return {}
+
+  const params: Record<string, unknown> = {}
+  if (typeof search.query === 'string') params.search_term = search.query
+  if (typeof search.results_count === 'number') params.results_count = search.results_count
+
+  return params
+}
+
+function gaItem(product: Record<string, unknown>, quantity: number): Record<string, unknown> {
+  return omitUndefined({
+    item_id: product.id === undefined ? undefined : String(product.id),
+    item_name: typeof product.name === 'string' ? product.name : undefined,
+    item_variant:
+      product.variant_id === null || product.variant_id === undefined
+        ? undefined
+        : String(product.variant_id),
+    item_category: product.category_id === undefined ? undefined : String(product.category_id),
+    price: typeof product.price === 'number' ? product.price : undefined,
+    quantity,
+  })
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null
+}
+
+function omitUndefined(record: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(record).filter(([, value]) => value !== undefined))
 }
 
 function referrerHost(): string | null {

@@ -1,6 +1,7 @@
 import type React from 'react'
 import { Component, type ReactNode } from 'react'
 import { Trans } from 'react-i18next'
+import { isChunkLoadError, reloadOnceForChunkError } from '@/lib/chunk-reload'
 import { COMPANY } from '@/lib/company'
 
 interface Props {
@@ -35,6 +36,12 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+
+    // A missing chunk after a deploy is not a code bug: reload once so the
+    // browser fetches the new index.html. If the guard suppresses the reload
+    // (the deployment is still incomplete), fall through to the error UI.
+    // Sentry is skipped for this case to avoid noise from every stale tab.
+    if (isChunkLoadError(error) && reloadOnceForChunkError()) return
 
     void import('@sentry/react')
       .then((Sentry) =>

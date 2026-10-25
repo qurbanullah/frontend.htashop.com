@@ -4,9 +4,10 @@ import type { ConsentCategories } from '@/lib/consent/constants'
  * Consent-gated tracker management.
  *
  * No non-essential script may load or send data before the user has
- * consented. This module is the single gatekeeper for:
+ * consented. This module gates the trackers it owns:
  *
- *   analytics → Sentry (errors/tracing/replay), Google Analytics 4
+ *   analytics → Sentry (errors/tracing/replay). GA4 lives in `@/lib/analytics`
+ *               and subscribes to the same consent store itself.
  *   marketing → Meta (Facebook) Pixel
  *   necessary/preferences → no scripts (theme/language live in localStorage)
  *
@@ -19,7 +20,6 @@ declare global {
     dataLayer?: unknown[]
     gtag?: (...args: unknown[]) => void
     fbq?: ((...args: unknown[]) => void) & { queue?: unknown[][] }
-    [key: string]: unknown
   }
 }
 
@@ -70,38 +70,6 @@ async function applySentry(enabled: boolean): Promise<void> {
   }
 }
 
-// ── Google Analytics 4 (Consent Mode v2 aware) ──
-
-function getGa4Id(): string | undefined {
-  return import.meta.env.VITE_GA4_ID as string | undefined
-}
-
-function applyGoogleAnalytics(enabled: boolean): void {
-  const ga4Id = getGa4Id()
-  if (!ga4Id) return
-
-  // ga-disable-{id} is the official GA "denied" switch — no cookies set, no data sent
-  window[`ga-disable-${ga4Id}`] = !enabled
-
-  if (!enabled) {
-    removeScripts('googletagmanager.com/gtag/js')
-    return
-  }
-
-  if (document.querySelector('script[data-gdpr-ga4]')) return
-
-  const script = document.createElement('script')
-  script.async = true
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${ga4Id}`
-  script.dataset.gdprGa4 = 'true'
-  document.head.appendChild(script)
-
-  window.dataLayer = window.dataLayer || []
-  window.gtag = (...args: unknown[]) => window.dataLayer?.push(args)
-  window.gtag('js', new Date())
-  window.gtag('config', ga4Id, { anonymize_ip: true })
-}
-
 // ── Meta (Facebook) Pixel ──
 
 function getMetaPixelId(): string | undefined {
@@ -149,13 +117,13 @@ function removeScripts(srcPart: string): void {
 }
 
 /**
- * Apply the current consent choice to all trackers.
- * GA4/Meta script injection is synchronous; Sentry loads via dynamic import.
+ * Apply the current consent choice to the trackers owned by this module.
+ * Meta script injection is synchronous; Sentry loads via dynamic import.
+ * Google Analytics is gated separately by `@/lib/analytics`.
  * Safe to call repeatedly — each integration is idempotent.
  * Returns a promise so tests can await completion; callers use `void`.
  */
 export async function applyConsent(categories: ConsentCategories): Promise<void> {
-  applyGoogleAnalytics(categories.analytics)
   applyMetaPixel(categories.marketing)
   await applySentry(categories.analytics)
 }

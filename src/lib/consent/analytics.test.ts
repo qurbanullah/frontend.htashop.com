@@ -9,23 +9,16 @@ vi.mock('@sentry/react', () => ({
   replayIntegration: vi.fn(() => ({ name: 'replay' })),
 }))
 
-function gaScriptCount(): number {
-  return document.querySelectorAll('script[data-gdpr-ga4]').length
-}
-
 function metaScriptCount(): number {
   return document.querySelectorAll('script[data-gdpr-meta]').length
 }
 
-describe('consent-gated analytics', () => {
+describe('consent-gated trackers', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_SENTRY_DSN', 'https://test@sentry.io/123')
-    vi.stubEnv('VITE_GA4_ID', 'G-TEST123')
     vi.stubEnv('VITE_META_PIXEL_ID', '1234567890')
     document.head.innerHTML = ''
     delete window.fbq
-    delete window.gtag
-    delete window.dataLayer
     resetTrackers()
   })
 
@@ -34,30 +27,10 @@ describe('consent-gated analytics', () => {
     vi.clearAllMocks()
   })
 
-  it('does not load any tracker before consent', async () => {
+  it('does not load the Meta pixel before consent', async () => {
     await applyConsent(DEFAULT_CONSENT)
 
-    expect(gaScriptCount()).toBe(0)
     expect(metaScriptCount()).toBe(0)
-  })
-
-  it('loads GA4 when analytics consent is granted', async () => {
-    await applyConsent(ALL_CONSENT)
-
-    expect(gaScriptCount()).toBe(1)
-    const script = document.querySelector('script[data-gdpr-ga4]')
-    expect(script?.getAttribute('src')).toContain('googletagmanager.com')
-    expect(window.gtag).toBeTypeOf('function')
-    // anonymized IP is the privacy-safe default
-    expect(window.dataLayer).toBeDefined()
-  })
-
-  it('disables GA4 via ga-disable flag when consent is revoked', async () => {
-    await applyConsent(ALL_CONSENT)
-    await applyConsent(DEFAULT_CONSENT)
-
-    expect(window['ga-disable-G-TEST123']).toBe(true)
-    expect(gaScriptCount()).toBe(0)
   })
 
   it('loads the Meta pixel only when marketing consent is granted', async () => {
@@ -100,7 +73,6 @@ describe('consent-gated analytics', () => {
     await applyConsent(ALL_CONSENT)
     await applyConsent(ALL_CONSENT)
 
-    expect(gaScriptCount()).toBe(1)
     expect(metaScriptCount()).toBe(1)
   })
 })
