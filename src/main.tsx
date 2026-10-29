@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.tsx'
 import './index.css'
 import './i18n/config' // Initialize i18n
+import { applyBrandColor } from '@/lib/brand'
 import { installChunkReloadHandler } from '@/lib/chunk-reload'
 import { queryClient } from '@/lib/query-client'
 import { useConsentStore } from '@/stores/consent' // Initialize consent store
@@ -16,6 +17,10 @@ import { initNativeApp, prepareNativeShell } from './lib/native-app'
 // A stale index.html after a deploy makes lazy chunks 404. Reload once to pick
 // up the new shell; the guard prevents a loop if the deploy is incomplete.
 installChunkReloadHandler()
+
+// Brand colour: sky-500 unless VITE_BRAND_COLOR supplies another hex. The whole
+// blue palette and the primary/ring tokens derive from --brand (see index.css).
+applyBrandColor(import.meta.env.VITE_BRAND_COLOR ?? null)
 
 // GDPR: gate all non-essential trackers (Sentry, GA4, Meta Pixel) behind the
 // user's stored consent choice. This runs before first paint; the live

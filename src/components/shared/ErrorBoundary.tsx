@@ -101,8 +101,10 @@ class ErrorBoundary extends Component<Props, State> {
                 values={{ email: COMPANY.email }}
                 components={{
                   // Children are injected by i18next from the translation string.
-                  // biome-ignore lint/a11y/useAnchorContent: anchor text comes from the translation
-                  email: <a href={`mailto:${COMPANY.email}`} style={{ color: '#2563eb' }} />,
+                  email: (
+                    // biome-ignore lint/a11y/useAnchorContent: anchor text comes from the translation
+                    <a href={`mailto:${COMPANY.email}`} style={{ color: 'var(--brand-strong)' }} />
+                  ),
                 }}
               />
             </p>
@@ -132,8 +134,8 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={() => this.setState({ hasError: false, error: null })}
                 style={{
                   padding: '0.5rem 1rem',
-                  background: '#2563eb',
-                  color: 'white',
+                  background: 'var(--brand)',
+                  color: 'var(--brand-ink)',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',

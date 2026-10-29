@@ -84,7 +84,7 @@ export function ProductRail({ products, isLoading = false, emptyLabel }: Product
       <div
         ref={trackRef}
         onScroll={updateArrows}
-        className="no-scrollbar -mx-4 flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto scroll-smooth px-4 sm:-mx-6 sm:px-6"
+        className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 items-stretch gap-4 overflow-x-auto scroll-smooth px-4 sm:-mx-6 sm:scroll-px-6 sm:px-6"
       >
         {products.map((product) => (
           <div key={product.id} className="flex w-44 shrink-0 snap-start sm:w-52 md:w-56">

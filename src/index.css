@@ -3,19 +3,66 @@
 @variant dark (&:where(.dark, .dark *));
 
 /* ────────────────────────────────────────────────────────────────────────
+   Brand colour.
+
+   sky-500 is the HTAShop brand colour. Every primary surface derives from
+   `--brand`: the semantic tokens (`primary`, `ring`) and the whole `blue`
+   palette, which the UI already uses for CTAs, links, focus rings and input
+   borders. Overriding `--brand` (runtime, or via VITE_BRAND_COLOR) therefore
+   rebrands the storefront without touching components.
+
+   Unlayered `:root` wins over Tailwind's layered defaults, so these values
+   replace the built-in palette.
+   ──────────────────────────────────────────────────────────────────────── */
+:root {
+    --brand: #0ea5e9;
+    --brand-ink: #0f172a;
+    --brand-hover: color-mix(in oklab, var(--brand) 85%, white);
+    --brand-strong: color-mix(in oklab, var(--brand) 62%, black);
+    --brand-soft: color-mix(in oklab, var(--brand) 8%, white);
+    --brand-ring: color-mix(in oklab, var(--brand) 30%, white);
+
+    --color-blue-50: color-mix(in oklab, var(--brand) 6%, white);
+    --color-blue-100: color-mix(in oklab, var(--brand) 12%, white);
+    --color-blue-200: color-mix(in oklab, var(--brand) 28%, white);
+    --color-blue-300: color-mix(in oklab, var(--brand) 50%, white);
+    --color-blue-400: color-mix(in oklab, var(--brand) 72%, white);
+    --color-blue-500: var(--brand);
+    --color-blue-600: var(--brand);
+    --color-blue-700: var(--brand-strong);
+    --color-blue-800: color-mix(in oklab, var(--brand) 52%, black);
+    --color-blue-900: color-mix(in oklab, var(--brand) 42%, black);
+    --color-blue-950: color-mix(in oklab, var(--brand) 30%, black);
+}
+
+/* Sky-500 is a fill colour: as small text on white it lands at ~2.8:1, below
+   AA. Pure text keeps the darker brand shade; filled surfaces (bg-blue-600)
+   stay exactly on the brand. Unlayered, so it wins over the utility layer. */
+.text-blue-600 {
+    color: var(--brand-strong);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
    Semantic design tokens.
 
    Tailwind v4 emits utilities as `var(--color-*)` (verified in the built
    bundle), so these variables must exist for `bg-primary`, `ring-ring`,
    `border-input`, `bg-background`, … to compile at all. Without them the
    shared Button rendered with no background/border and no focus ring.
-   The `.dark` block re-points them for dark mode.
+   The `.dark` block re-points them for dark mode; `primary` and `ring` stay
+   on the brand in both themes (only the surfaces change).
+
+   `primary`/`ring` must live inside `@theme` (not plain `:root`) or Tailwind
+   never emits the `bg-primary`, `text-primary-foreground` and `ring-ring`
+   utilities — the `var()` would exist but no rule would reference it.
    ──────────────────────────────────────────────────────────────────────── */
 @theme {
+    --color-primary: var(--brand);
+    --color-primary-foreground: var(--brand-ink);
+    --color-ring: var(--brand);
+
     --color-background: #ffffff;
     --color-foreground: #111827;
-    --color-primary: #2563eb;
-    --color-primary-foreground: #ffffff;
     --color-secondary: #f3f4f6;
     --color-secondary-foreground: #111827;
     --color-muted: #f3f4f6;
@@ -24,14 +71,11 @@
     --color-accent-foreground: #111827;
     --color-input: #d1d5db;
     --color-border: #e5e7eb;
-    --color-ring: #3b82f6;
 }
 
 .dark {
     --color-background: #111827;
     --color-foreground: #f3f4f6;
-    --color-primary: #3b82f6;
-    --color-primary-foreground: #ffffff;
     --color-secondary: #1f2937;
     --color-secondary-foreground: #f3f4f6;
     --color-muted: #1f2937;
@@ -40,7 +84,6 @@
     --color-accent-foreground: #f3f4f6;
     --color-input: #374151;
     --color-border: #1f2937;
-    --color-ring: #60a5fa;
 }
 
 /* ────────────────────────────────────────────────────────────────────────

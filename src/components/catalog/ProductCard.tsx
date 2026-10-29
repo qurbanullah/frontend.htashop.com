@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
     preferUrl(product.image_urls, ['medium', 'small', 'large', 'original']) ?? product.image_url
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
+    <div className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
       <Link to={`${paths.products}/${product.route_key}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
           {imgSrc ? (
@@ -71,7 +71,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between gap-3 pt-3">
+        <div className="mt-auto flex items-center justify-between gap-3 pt-4">
           <div className="flex items-baseline gap-2">
             <span className="font-bold text-gray-900 text-lg dark:text-white">
               {formatMoney(price.display, product.currency)}

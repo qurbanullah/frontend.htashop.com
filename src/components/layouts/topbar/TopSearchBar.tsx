@@ -326,7 +326,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
         <div ref={searchRef} className="relative w-full min-w-0 flex-1">
           <form
             onSubmit={submitSearch}
-            className="flex items-stretch overflow-hidden rounded-lg transition-shadow focus-within:ring-2 focus-within:ring-sky-500 sm:mx-auto sm:max-w-6xl dark:focus-within:ring-sky-400"
+            className="flex items-stretch overflow-hidden rounded-lg border border-sky-400 transition-shadow focus-within:ring-2 focus-within:ring-sky-500 sm:mx-auto sm:max-w-6xl dark:focus-within:ring-sky-400"
           >
             <select
               value={categoryId}
@@ -347,7 +347,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setSearchOpen(true)}
               placeholder={t('shell.search_placeholder')}
-              className="h-10 min-w-0 flex-1 bg-white px-3 text-gray-900 text-sm outline-none placeholder:text-gray-400 dark:bg-gray-900 dark:text-white"
+              className="h-10 min-w-0 flex-1 bg-white px-3 text-gray-900 text-sm outline-none placeholder:text-gray-400 dark:bg-gray-800 dark:text-white"
             />
 
             <button
@@ -414,7 +414,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
           >
             <ShoppingCart className="h-5 w-5" />
             {cartCount > 0 && (
-              <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 font-bold text-[10px] text-gray-900">
+              <span className="absolute-end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 font-bold text-[10px] text-gray-900">
                 {cartCount > 99 ? '99+' : cartCount}
               </span>
             )}
@@ -439,7 +439,7 @@ export function TopSearchBar({ categories }: { categories: Category[] }) {
               </Link>
               <Link
                 to={paths.register}
-                className="rounded-lg bg-sky-500 px-3 py-2 font-semibold text-gray-900 text-sm transition-colors hover:bg-amber-400"
+                className="rounded-lg bg-sky-500 px-3 py-2 font-semibold text-sm text-white transition-colors hover:bg-amber-400"
               >
                 {t('shell.register')}
               </Link>
