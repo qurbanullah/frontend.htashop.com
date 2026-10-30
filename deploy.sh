@@ -102,7 +102,6 @@ step "Checking the environment"
 cd "$APP_DIR" || die "cannot enter $APP_DIR"
 [ -f Dockerfile ]  || die "$APP_DIR has no Dockerfile, so it is not the build context"
 [ -f package.json ] || die "$APP_DIR does not look like the application (no package.json)"
-[ -f prerender/Dockerfile ] || die "$APP_DIR/prerender/Dockerfile is missing"
 
 command -v git >/dev/null 2>&1 || die "git not found"
 command -v docker >/dev/null 2>&1 || die "docker not found"
@@ -164,6 +163,11 @@ if [ -n "$DIRTY" ]; then
     warn "the checkout has uncommitted changes; the image will not match what was pushed"
     printf '%s\n' "$DIRTY" | sed 's/^/    /' >&2
 fi
+
+# Checked after the fast-forward: prerender/ arrives with the commit that adds
+# it, so the preflight (before git fetch) cannot see it on the first deploy.
+[ -f prerender/Dockerfile ] \
+    || die "$APP_DIR/prerender/Dockerfile is missing from the checkout"
 
 # ---------------------------------------------------------------------------
 # Build
