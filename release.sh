@@ -123,6 +123,13 @@ if [ "$RUN_CHECKS" -eq 1 ]; then
     step "Type check"
     run_npm run type-check || die "type check failed"
 
+    step "Prerender syntax"
+    if command -v node >/dev/null 2>&1; then
+        node --check prerender/server.js || die "prerender/server.js has a syntax error"
+    else
+        warn "node not installed; skipping prerender syntax check"
+    fi
+
     step "Tests"
     run_npm run test -- --run --passWithNoTests || die "tests failed"
 else

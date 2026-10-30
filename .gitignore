@@ -10,6 +10,9 @@
 /build
 /dist
 
+# prerender service dependencies
+/prerender/node_modules
+
 # misc
 .DS_Store
 .env

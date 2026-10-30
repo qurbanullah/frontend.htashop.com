@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build the frontend image and roll the Swarm service onto it.
+# Build the frontend and prerender images and roll both Swarm services onto them.
 #
 # This runs ON THE SWARM MANAGER, normally arriving over stdin from
 # .github/workflows/deploy.yml:
@@ -9,20 +9,21 @@
 #
 # The manager keeps the checkout this builds from; the script updates it first, so
 # what is built is what was pushed. The stack itself (networks, secrets, db, redis,
-# typesense, haproxy) is deployed separately — see deploy/ — and this only moves one
-# service.
+# typesense, haproxy) is deployed separately — see deploy/ — and this only moves the
+# storefront and its prerender service.
 #
-#   ./deploy.sh --no-build      roll the existing image (already built)
+#   ./deploy.sh --no-build      roll the existing images (already built)
 #   ./deploy.sh --no-smoke      skip the post-rollout check
 #   ./deploy.sh --help
 #
 # Environment:
 #
-#   APP_DIR              checkout to build from (defaults to this script's directory)
-#   BRANCH               branch to deploy (default: main)
-#   STACK_NAME           (default: htashop)
-#   SERVICE_NAME         (default: frontend)
-#   SMOKE_URL            e.g. https://htashop.com/
+#   APP_DIR                checkout to build from (defaults to this script's directory)
+#   BRANCH                 branch to deploy (default: main)
+#   STACK_NAME             (default: htashop)
+#   SERVICE_NAME           (default: frontend)
+#   PRERENDER_SERVICE_NAME (default: ${STACK_NAME}_prerender)
+#   SMOKE_URL              e.g. https://htashop.com/
 #
 set -euo pipefail
 
@@ -32,6 +33,9 @@ SERVICE_NAME="${SERVICE_NAME:-frontend}"
 
 SWARM_SERVICE_NAME="${STACK_NAME}_${SERVICE_NAME}"
 IMAGE_NAME="${STACK_NAME}-${SERVICE_NAME}:latest"
+
+PRERENDER_SERVICE_NAME="${PRERENDER_SERVICE_NAME:-${STACK_NAME}_prerender}"
+PRERENDER_IMAGE="${STACK_NAME}-prerender:latest"
 
 DO_BUILD=1
 DO_SMOKE=1
@@ -55,13 +59,14 @@ trap 'report_error "$LINENO" "$BASH_COMMAND" "$?"' ERR
 
 usage() {
     cat <<'USAGE'
-Build the frontend image and roll the Swarm service onto it.
+Build the frontend and prerender images and roll both Swarm services onto them.
 
-  --no-build   skip the build and roll the existing image
+  --no-build   skip the builds and roll the existing images
   --no-smoke   skip the post-rollout smoke test
   -h, --help   show this message
 
-With no options this updates the checkout, builds, rolls the service and checks it.
+With no options this updates the checkout, builds both images, rolls both services
+and checks the storefront.
 USAGE
     exit 0
 }
@@ -97,6 +102,7 @@ step "Checking the environment"
 cd "$APP_DIR" || die "cannot enter $APP_DIR"
 [ -f Dockerfile ]  || die "$APP_DIR has no Dockerfile, so it is not the build context"
 [ -f package.json ] || die "$APP_DIR does not look like the application (no package.json)"
+[ -f prerender/Dockerfile ] || die "$APP_DIR/prerender/Dockerfile is missing"
 
 command -v git >/dev/null 2>&1 || die "git not found"
 command -v docker >/dev/null 2>&1 || die "docker not found"
@@ -113,16 +119,25 @@ docker service inspect "$SWARM_SERVICE_NAME" >/dev/null 2>&1 \
     || die "no service named '$SWARM_SERVICE_NAME'.
   The stack must be deployed first (see deploy/), or STACK_NAME/SERVICE_NAME are wrong."
 
+docker service inspect "$PRERENDER_SERVICE_NAME" >/dev/null 2>&1 \
+    || die "no service named '$PRERENDER_SERVICE_NAME'.
+  The stack must be deployed first (see deploy/), or STACK_NAME/PRERENDER_SERVICE_NAME are wrong."
+
 EXPECTED_REPLICAS="$(docker service inspect "$SWARM_SERVICE_NAME" \
+    --format '{{.Spec.Mode.Replicated.Replicas}}' 2>/dev/null || echo '?')"
+
+PRERENDER_REPLICAS="$(docker service inspect "$PRERENDER_SERVICE_NAME" \
     --format '{{.Spec.Mode.Replicated.Replicas}}' 2>/dev/null || echo '?')"
 
 git remote get-url origin >/dev/null 2>&1 \
     || die "$APP_DIR has no 'origin' remote, so it is not the application's checkout"
 
-info "app:     $APP_DIR"
-info "service: $SWARM_SERVICE_NAME ($EXPECTED_REPLICAS replicas)"
-info "image:   $IMAGE_NAME"
-info "branch:  $BRANCH"
+info "app:       $APP_DIR"
+info "service:   $SWARM_SERVICE_NAME ($EXPECTED_REPLICAS replicas)"
+info "prerender: $PRERENDER_SERVICE_NAME ($PRERENDER_REPLICAS replicas)"
+info "image:     $IMAGE_NAME"
+info "image:     $PRERENDER_IMAGE"
+info "branch:    $BRANCH"
 
 # ---------------------------------------------------------------------------
 # Code
@@ -159,6 +174,7 @@ fi
 
 SHORT_SHA="$(git rev-parse --short HEAD)"
 BUILD_TAG="${STACK_NAME}-${SERVICE_NAME}:${SHORT_SHA}"
+PRERENDER_BUILD_TAG="${STACK_NAME}-prerender:${SHORT_SHA}"
 
 if [ "$DO_BUILD" -eq 1 ]; then
     step "Building $BUILD_TAG"
@@ -166,36 +182,50 @@ if [ "$DO_BUILD" -eq 1 ]; then
     docker build -t "$IMAGE_NAME" -t "$BUILD_TAG" .
 
     info "built $BUILD_TAG"
+
+    step "Building $PRERENDER_BUILD_TAG"
+
+    docker build -t "$PRERENDER_IMAGE" -t "$PRERENDER_BUILD_TAG" "$APP_DIR/prerender"
+
+    info "built $PRERENDER_BUILD_TAG"
 else
     step "Skipping the build"
-    info "rolling $IMAGE_NAME, whatever it currently points at"
+    info "rolling $IMAGE_NAME and $PRERENDER_IMAGE, whatever they currently point at"
 fi
 
 # ---------------------------------------------------------------------------
 # Roll out
 # ---------------------------------------------------------------------------
 
-step "Rolling $SWARM_SERVICE_NAME"
+roll_service() {
+    local service="$1" image="$2" expected="$3"
+    local running
 
-docker service update --force --image "$IMAGE_NAME" "$SWARM_SERVICE_NAME"
+    step "Rolling $service"
 
-docker service ps "$SWARM_SERVICE_NAME" \
-    --filter desired-state=running \
-    --format 'table {{.Name}}\t{{.Node}}\t{{.CurrentState}}' \
-    || warn "could not read the service's tasks"
+    docker service update --force --image "$image" "$service"
 
-RUNNING="$(docker service ps "$SWARM_SERVICE_NAME" \
-    --filter desired-state=running --format '{{.CurrentState}}' 2>/dev/null \
-    | grep -c '^Running' || true)"
+    docker service ps "$service" \
+        --filter desired-state=running \
+        --format 'table {{.Name}}\t{{.Node}}\t{{.CurrentState}}' \
+        || warn "could not read the service's tasks"
 
-info "$RUNNING of ${EXPECTED_REPLICAS} replicas running"
+    running="$(docker service ps "$service" \
+        --filter desired-state=running --format '{{.CurrentState}}' 2>/dev/null \
+        | grep -c '^Running' || true)"
 
-if [ "$EXPECTED_REPLICAS" != "?" ] && [ "$RUNNING" -lt "$EXPECTED_REPLICAS" ]; then
-    die "only $RUNNING of $EXPECTED_REPLICAS replicas are running.
+    info "$running of ${expected} replicas running"
+
+    if [ -n "$expected" ] && [ "$expected" != "?" ] && [ "$running" -lt "$expected" ]; then
+        die "only $running of $expected replicas are running for $service.
   The rollout reported success but the service is short — check:
-    docker service ps $SWARM_SERVICE_NAME
-    docker service logs $SWARM_SERVICE_NAME --tail 100"
-fi
+    docker service ps $service
+    docker service logs $service --tail 100"
+    fi
+}
+
+roll_service "$SWARM_SERVICE_NAME" "$IMAGE_NAME" "$EXPECTED_REPLICAS"
+roll_service "$PRERENDER_SERVICE_NAME" "$PRERENDER_IMAGE" "$PRERENDER_REPLICAS"
 
 # ---------------------------------------------------------------------------
 # Verify
@@ -233,4 +263,4 @@ fi
 step "Pruning dangling images"
 docker image prune -f || warn "could not prune images"
 
-step "Deployed ${SWARM_SERVICE_NAME} at ${SHORT_SHA}"
+step "Deployed ${SWARM_SERVICE_NAME} and ${PRERENDER_SERVICE_NAME} at ${SHORT_SHA}"

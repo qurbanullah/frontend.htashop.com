@@ -1,0 +1,17 @@
+{
+  "name": "htashop-prerender",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SPA prerender service for the HTAShop storefront — renders pages for search-engine crawlers",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "puppeteer": "^23.11.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

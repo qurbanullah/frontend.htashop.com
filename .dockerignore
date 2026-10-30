@@ -18,6 +18,8 @@ coverage
 .nyc_output
 dist
 build
+# The prerender service is built from its own context (frontend/prerender).
+prerender
 # Capacitor native projects (built on the host, not needed in the Docker image)
 android
 ios
