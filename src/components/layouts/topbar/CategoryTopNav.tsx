@@ -3,6 +3,7 @@ import { ChevronRight, Menu } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { categoriesApi } from '@/api/categories'
+import { CategoryVisual } from '@/components/catalog/CategoryVisual'
 import { paths } from '@/routes/paths'
 import { useCategoryDrawerStore } from '@/stores/category-drawer'
 
@@ -33,8 +34,9 @@ export function CategoryNav() {
               <Link
                 key={category.id}
                 to={`${paths.products}?category=${category.id}`}
-                className="flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium text-gray-600 text-sm transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2.5 font-medium text-gray-600 text-sm transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
               >
+                <CategoryVisual category={category} size="sm" />
                 {category.name}
                 <ChevronRight className="h-3.5 w-3.5 text-gray-400 rtl:rotate-180" />
               </Link>

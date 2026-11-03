@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type Category, categoriesApi } from '@/api/categories'
+import { CategoryVisual } from '@/components/catalog/CategoryVisual'
 import { useAuth } from '@/hooks/auth/useAuth'
 import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import { getLanguageName } from '@/i18n/config'
@@ -40,7 +41,10 @@ function CategoryRow({
     return (
       <li>
         <button type="button" onClick={() => onSelect(category)} className={rowClass}>
-          <span className="truncate">{category.name}</span>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <CategoryVisual category={category} size="md" />
+            <span className="truncate">{category.name}</span>
+          </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-gray-400 rtl:rotate-180" />
         </button>
       </li>
@@ -50,7 +54,10 @@ function CategoryRow({
   return (
     <li>
       <Link to={`${paths.products}?category=${category.id}`} onClick={close} className={rowClass}>
-        <span className="truncate">{category.name}</span>
+        <span className="flex min-w-0 items-center gap-2.5">
+          <CategoryVisual category={category} size="md" />
+          <span className="truncate">{category.name}</span>
+        </span>
       </Link>
     </li>
   )
@@ -271,6 +278,7 @@ export function CategoryDrawer() {
                       <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
                       {t('categoryDrawer.back')}
                     </button>
+                    <CategoryVisual category={activeCategory} size="sm" />
                     <span className="truncate font-semibold text-gray-900 text-sm dark:text-white">
                       {activeCategory.name}
                     </span>

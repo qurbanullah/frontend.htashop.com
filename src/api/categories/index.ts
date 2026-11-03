@@ -9,6 +9,9 @@ export interface Category {
   parent_id?: number | null
   level?: number
   sort_order?: number
+  icon?: string | null
+  color?: string | null
+  image?: string | null
   children?: Category[]
 }
 
