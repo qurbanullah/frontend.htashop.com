@@ -454,6 +454,7 @@
     "subtotal": "Zwischensumme",
     "updating": "Wird aktualisiert…",
     "checkout": "Zur Kasse gehen",
+    "checkout_unavailable": "Checkout ist vorübergehend nicht verfügbar",
     "shipping_note": "Versand und Steuern werden an der Kasse berechnet."
   },
   "checkout": {
@@ -467,6 +468,8 @@
     "empty_title": "Ihr Warenkorb ist leer",
     "empty_body": "Fügen Sie vor dem Bezahlen einige Produkte hinzu.",
     "browse": "Produkte durchsuchen",
+    "disabled_title": "Checkout ist vorübergehend nicht verfügbar",
+    "disabled_body": "Checkout ist vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut.",
     "email_label": "E-Mail-Adresse",
     "email_placeholder": "sie@beispiel.de",
     "email_help": "Hierhin senden wir Ihre Bestellbestätigung und Lieferupdates.",

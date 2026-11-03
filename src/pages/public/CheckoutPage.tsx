@@ -16,6 +16,7 @@ import { ReviewStep } from '@/components/checkout/ReviewStep'
 import { Seo } from '@/components/seo/Seo'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { useCheckoutStatus } from '@/hooks/shared/useCheckoutStatus'
 import { useDebouncedValue } from '@/hooks/shared/useDebouncedValue'
 import {
   type AddressFormValue,
@@ -287,6 +288,19 @@ function EmptyCartState() {
   )
 }
 
+function CheckoutUnavailableState({ message }: { message: string }) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="mx-auto flex max-w-2xl items-center justify-center px-4 py-24 text-center">
+      <Seo title={t('checkout.disabled_title')} noindex />
+      <p className="text-base text-gray-700 dark:text-gray-300">
+        {message || t('checkout.disabled_body')}
+      </p>
+    </div>
+  )
+}
+
 interface StepActionsProps {
   isFirstStep: boolean
   isReviewStep: boolean
@@ -344,6 +358,7 @@ export default function CheckoutPage() {
   const { items, subtotal, currency, isLoading, clear } = useCartStore()
   const user = useAuthStore((state) => state.user)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const { enabled: checkoutEnabled, message: checkoutMessage } = useCheckoutStatus()
 
   const [step, setStep] = useState<CheckoutStep>('information')
   const [furthestStep, setFurthestStep] = useState(0)
@@ -377,7 +392,7 @@ export default function CheckoutPage() {
     queryKey: ['payment-methods', currency],
     queryFn: () => paymentsApi.methods(currency),
     staleTime: 5 * 60 * 1000,
-    enabled: items.length > 0,
+    enabled: checkoutEnabled && items.length > 0,
   })
 
   const methods = useMemo(() => methodsQuery.data ?? [], [methodsQuery.data])
@@ -421,14 +436,15 @@ export default function CheckoutPage() {
   const baseQuoteQuery = useQuery({
     queryKey: ['checkout-quote', currency, subtotal, items.length],
     queryFn: ({ signal }) => checkoutApi.quote({ signal }),
-    enabled: cartReady,
+    enabled: checkoutEnabled && cartReady,
     staleTime: 60 * 1000,
   })
 
   const couponQuoteQuery = useQuery({
     queryKey: ['checkout-quote-coupon', currency, subtotal, items.length, debouncedCoupon],
     queryFn: ({ signal }) => checkoutApi.quote({ couponCode: debouncedCoupon, signal }),
-    enabled: cartReady && debouncedCoupon !== '' && debouncedCoupon === couponCode,
+    enabled:
+      checkoutEnabled && cartReady && debouncedCoupon !== '' && debouncedCoupon === couponCode,
     staleTime: 60 * 1000,
   })
 
@@ -626,6 +642,12 @@ export default function CheckoutPage() {
   const primaryLabel = t(primaryActionKey(step, status), {
     gateway: selectedMethod?.label ?? '',
   })
+
+  // ── Checkout unavailable ──────────────────────────────────────────────────
+
+  if (!checkoutEnabled) {
+    return <CheckoutUnavailableState message={checkoutMessage} />
+  }
 
   // ── Empty cart ──────────────────────────────────────────────────────────────
 

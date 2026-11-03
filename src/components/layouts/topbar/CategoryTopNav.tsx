@@ -13,7 +13,7 @@ export function CategoryNav() {
   const { data: categories = [] } = useQuery({
     queryKey: ['top-nav-categories'],
     queryFn: () => categoriesApi.topNav(),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // matches the API's 5-minute top-nav cache
   })
 
   return (

@@ -26,7 +26,22 @@ export interface CheckoutQuote {
   landed_cost?: number
 }
 
+/** Controls whether the storefront offers checkout or a "temporarily unavailable" state. */
+export interface CheckoutStatus {
+  enabled: boolean
+  message: string
+}
+
 export const checkoutApi = {
+  /**
+   * Read the storefront's checkout switch. This is the API's master flag — the
+   * checkout endpoints stay fail-closed even if the client ignores it.
+   */
+  async status(): Promise<CheckoutStatus> {
+    const res = await api.get('checkout/status', { throwHttpErrors: false })
+    const body = await parseApiResponse<CheckoutStatus>(res)
+    return body.data as CheckoutStatus
+  },
   /**
    * Price the current cart.
    *

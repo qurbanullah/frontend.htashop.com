@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Minus, Plus, ShoppingCart, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useCheckoutStatus } from '@/hooks/shared/useCheckoutStatus'
 import { formatMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
 
@@ -18,6 +20,7 @@ export function CartDrawer() {
   const closeDrawer = useCartStore((s) => s.closeDrawer)
   const updateItem = useCartStore((s) => s.updateItem)
   const removeItem = useCartStore((s) => s.removeItem)
+  const { enabled: checkoutEnabled, message: checkoutMessage } = useCheckoutStatus()
 
   return (
     <AnimatePresence>
@@ -174,16 +177,34 @@ export function CartDrawer() {
               </div>
               <button
                 type="button"
-                disabled={isLoading}
+                disabled={isLoading || !checkoutEnabled}
                 onClick={() => {
                   closeDrawer()
                   navigate(paths.checkout)
                 }}
-                className="flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 font-semibold text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                className={cn(
+                  'flex h-11 w-full items-center justify-center rounded-xl font-semibold text-sm transition-colors',
+                  checkoutEnabled
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60'
+                    : 'cursor-not-allowed bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                )}
               >
-                {isLoading ? t('cart.updating') : t('cart.checkout')}
+                {isLoading
+                  ? t('cart.updating')
+                  : checkoutEnabled
+                    ? t('cart.checkout')
+                    : t('cart.checkout_unavailable')}
               </button>
-              <p className="mt-2 text-center text-gray-400 text-xs">{t('cart.shipping_note')}</p>
+              <p
+                className={cn(
+                  'mt-2 text-center text-xs',
+                  checkoutEnabled ? 'text-gray-400' : 'text-amber-600 dark:text-amber-400'
+                )}
+              >
+                {checkoutEnabled
+                  ? t('cart.shipping_note')
+                  : checkoutMessage || t('checkout.disabled_body')}
+              </p>
             </div>
           )}
         </motion.div>

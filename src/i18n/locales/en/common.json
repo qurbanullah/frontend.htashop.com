@@ -454,6 +454,7 @@
     "subtotal": "Subtotal",
     "updating": "Updating…",
     "checkout": "Proceed to checkout",
+    "checkout_unavailable": "Checkout is temporarily unavailable",
     "shipping_note": "Shipping and taxes calculated at checkout."
   },
   "checkout": {
@@ -467,6 +468,8 @@
     "empty_title": "Your cart is empty",
     "empty_body": "Add some products before checking out.",
     "browse": "Browse products",
+    "disabled_title": "Checkout is temporarily unavailable",
+    "disabled_body": "Checkout is temporarily unavailable. Please check back soon.",
     "email_label": "Email address",
     "email_placeholder": "you@example.com",
     "email_help": "Your order confirmation and delivery updates are sent here.",
