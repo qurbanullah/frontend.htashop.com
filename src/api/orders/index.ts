@@ -74,6 +74,8 @@ export interface PlaceOrderPayload {
   billing_address?: Record<string, unknown>
   /** Optional discount code; the server validates and applies it. */
   coupon_code?: string
+  /** Delivery option the customer picked; the server re-derives its price. */
+  shipping_rate_uuid?: string
   notes?: string
   /** Consent-gated first-party attribution; ignored when absent. */
   analytics?: {

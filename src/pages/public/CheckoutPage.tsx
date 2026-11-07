@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { addressesApi } from '@/api/addresses'
-import { type CheckoutQuote, checkoutApi } from '@/api/checkout'
+import { type CheckoutDestination, type CheckoutQuote, checkoutApi } from '@/api/checkout'
 import { ordersApi, type PlaceOrderPayload, type PlaceOrderResult } from '@/api/orders'
 import { type PaymentMethodOption, paymentsApi } from '@/api/payments'
 import { CheckoutStepper, type StepperStep } from '@/components/checkout/CheckoutStepper'
@@ -129,7 +129,7 @@ function describeOrderFailure(
 /** Assemble the order payload from the form values. */
 function buildOrderPayload(
   values: CheckoutFormValues,
-  context: { checkoutToken: string; accountEmail?: string | null }
+  context: { checkoutToken: string; accountEmail?: string | null; shippingRateUuid?: string | null }
 ): PlaceOrderPayload {
   const shipping = toAddressPayload(values.shipping)
 
@@ -142,6 +142,11 @@ function buildOrderPayload(
     shipping_address: shipping,
     billing_address: values.billingSame ? shipping : toAddressPayload(values.billing),
     coupon_code: values.coupon_code.trim() || undefined,
+    // The `config:*` fallback is not a database row, so it is left for the
+    // server to re-select; a real rate is sent so the order keeps the choice.
+    shipping_rate_uuid: context.shippingRateUuid?.startsWith('config:')
+      ? undefined
+      : (context.shippingRateUuid ?? undefined),
     notes: values.notes.trim() || undefined,
     ...(hasAnalyticsConsent()
       ? {
@@ -433,16 +438,75 @@ export default function CheckoutPage() {
   const debouncedCoupon = useDebouncedValue(couponCode, 450)
   const cartReady = items.length > 0
 
+  /**
+   * The destination that decides which zone and rate apply. Sent from the
+   * information step so the delivery line updates as the address is edited —
+   * and so the fee shown is the fee the order will charge.
+   */
+  const destination = useMemo<CheckoutDestination | undefined>(() => {
+    const countryId = values.shipping.country_id
+
+    if (countryId === null) return undefined
+
+    return {
+      country_id: countryId,
+      city_id: values.shipping.city_id,
+      state: values.shipping.state.trim() || null,
+      postal_code: values.shipping.postal_code.trim() || null,
+    }
+  }, [
+    values.shipping.country_id,
+    values.shipping.city_id,
+    values.shipping.state,
+    values.shipping.postal_code,
+  ])
+
+  /** The delivery option the customer picked; the server re-prices it. */
+  const [preferredRate, setPreferredRate] = useState<string | null>(null)
+
+  const destinationKey = [
+    destination?.country_id ?? 0,
+    destination?.city_id ?? 0,
+    destination?.state ?? '',
+    destination?.postal_code ?? '',
+  ] as const
+
   const baseQuoteQuery = useQuery({
-    queryKey: ['checkout-quote', currency, subtotal, items.length],
-    queryFn: ({ signal }) => checkoutApi.quote({ signal }),
+    queryKey: [
+      'checkout-quote',
+      currency,
+      subtotal,
+      items.length,
+      ...destinationKey,
+      preferredRate ?? '',
+    ],
+    queryFn: ({ signal }) =>
+      checkoutApi.quote({
+        shippingAddress: destination,
+        shippingRateUuid: preferredRate ?? undefined,
+        signal,
+      }),
     enabled: checkoutEnabled && cartReady,
     staleTime: 60 * 1000,
   })
 
   const couponQuoteQuery = useQuery({
-    queryKey: ['checkout-quote-coupon', currency, subtotal, items.length, debouncedCoupon],
-    queryFn: ({ signal }) => checkoutApi.quote({ couponCode: debouncedCoupon, signal }),
+    queryKey: [
+      'checkout-quote-coupon',
+      currency,
+      subtotal,
+      items.length,
+      debouncedCoupon,
+      ...destinationKey,
+      preferredRate ?? '',
+    ],
+    queryFn: ({ signal }) =>
+      checkoutApi.quote({
+        couponCode: debouncedCoupon,
+        shippingAddress: destination,
+        shippingRateUuid: preferredRate ?? undefined,
+        signal,
+      }),
     enabled:
       checkoutEnabled && cartReady && debouncedCoupon !== '' && debouncedCoupon === couponCode,
     staleTime: 60 * 1000,
@@ -453,6 +517,19 @@ export default function CheckoutPage() {
   const quote: CheckoutQuote | null = couponApplied
     ? (couponQuoteQuery.data ?? null)
     : (baseQuoteQuery.data ?? null)
+
+  const shippingOptions = quote?.shipping_options ?? []
+  const selectedShippingRate = preferredRate ?? quote?.shipping_rate_uuid ?? null
+
+  // The destination can change the available rates; if the chosen one is gone,
+  // fall back to the server's selection instead of sending a stale id.
+  useEffect(() => {
+    if (!preferredRate) return
+
+    if (!shippingOptions.some((option) => option.id === preferredRate)) {
+      setPreferredRate(null)
+    }
+  }, [preferredRate, shippingOptions])
 
   let couponStatus: CouponStatus = 'idle'
   if (couponCode !== '') {
@@ -584,7 +661,11 @@ export default function CheckoutPage() {
 
     try {
       const result = await ordersApi.placeOrder(
-        buildOrderPayload(values, { checkoutToken, accountEmail: user?.email })
+        buildOrderPayload(values, {
+          checkoutToken,
+          accountEmail: user?.email,
+          shippingRateUuid: selectedShippingRate,
+        })
       )
 
       // The order exists now, so the cart is spent either way.
@@ -623,7 +704,17 @@ export default function CheckoutPage() {
         goToStep('payment')
       }
     }
-  }, [values, isAuthenticated, goToStep, user, checkoutToken, clear, navigate, t])
+  }, [
+    values,
+    isAuthenticated,
+    goToStep,
+    user,
+    checkoutToken,
+    clear,
+    navigate,
+    t,
+    selectedShippingRate,
+  ])
 
   const selectSavedAddress = useCallback(
     (uuid: string) => {
@@ -814,6 +905,10 @@ export default function CheckoutPage() {
                   paymentRequiresRedirect={selectedMethod?.requires_redirect ?? false}
                   notes={values.notes}
                   isAuthenticated={isAuthenticated}
+                  shippingOptions={shippingOptions}
+                  selectedShippingRate={selectedShippingRate}
+                  shippingLoading={baseQuoteQuery.isFetching || couponQuoteQuery.isFetching}
+                  onSelectShippingRate={setPreferredRate}
                   onEdit={goToStep}
                 />
               </div>

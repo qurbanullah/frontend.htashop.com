@@ -70,6 +70,40 @@ export interface CatalogVariant {
   image_url: string | null
 }
 
+export interface CatalogProductVideo {
+  id: number
+  url: string
+  poster_url: string | null
+  mime_type: string | null
+  file_name: string | null
+  size: number | null
+  sort_order: number | null
+}
+
+export interface CatalogProductPackaging {
+  net_weight: number | null
+  gross_weight: number | null
+  weight_unit: string | null
+  gross_weight_kg: number | null
+  length: number | null
+  width: number | null
+  height: number | null
+  dimension_unit: string | null
+  length_cm: number | null
+  width_cm: number | null
+  height_cm: number | null
+  packaging_type: { code: string; name: string } | null
+  units_per_case: number
+  ships_alone: boolean
+  is_fragile: boolean
+  is_stackable: boolean
+  is_hazmat: boolean
+  handling_notes: string | null
+  contents: Array<{ name: string; qty?: number | null }>
+  is_rateable: boolean
+  volumetric_weight_kg: number | null
+}
+
 export interface CatalogProductDetail extends CatalogProduct {
   description: string | null
   specs: Array<{ key: string; value: string; unit_id: number | null; unit_name: string }>
@@ -77,10 +111,12 @@ export interface CatalogProductDetail extends CatalogProduct {
   gallery_sizes?: ImageUrls[] | null
   image_original_url: string | null
   gallery_original: string[]
+  videos?: CatalogProductVideo[]
   highlights: Array<{ id: number; label: string | null; heading: string | null; body: string }>
   manufacturers?: Array<{ id: number; uuid: string; name: string; slug: string }>
   variants: CatalogVariant[]
   stock: { track_inventory: boolean; available: number; low_stock: boolean }
+  packaging?: CatalogProductPackaging | null
 }
 
 function toSearchParams(params: CatalogFiltersPayload): URLSearchParams {

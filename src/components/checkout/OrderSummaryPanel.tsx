@@ -100,7 +100,14 @@ function Totals({ subtotal, currency, totals, loading }: TotalsProps) {
       </div>
 
       <div className="flex items-center justify-between">
-        <dt className="text-gray-600 dark:text-gray-300">{t('summary.shipping')}</dt>
+        <dt className="text-gray-600 dark:text-gray-300">
+          <span className="block">{t('summary.shipping')}</span>
+          {totals?.shipping_method && (
+            <span className="block text-gray-400 text-xs dark:text-gray-500">
+              {totals.shipping_method}
+            </span>
+          )}
+        </dt>
         <dd
           className={cn(
             'text-gray-500 dark:text-gray-400',

@@ -3,14 +3,15 @@ import {
   Check,
   ChevronRight,
   Clock,
+  Film,
   Loader2,
   MessageCircle,
   Minus,
   Package,
+  Play,
   Plus,
   ShoppingCart,
   Truck,
-  ZoomIn,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,12 +19,16 @@ import { Link, useParams } from 'react-router-dom'
 import { catalogApi } from '@/api/catalog'
 import { reviewsApi } from '@/api/reviews'
 import { BannerZone } from '@/components/banners/BannerRenderer'
+import { ProductGallerySlider } from '@/components/catalog/ProductGallerySlider'
 import { ProductImageModal } from '@/components/catalog/ProductImageModal'
+import { ProductPackaging } from '@/components/catalog/ProductPackaging'
 import { ProductReviews } from '@/components/catalog/ProductReviews'
+import { ProductVideoModal } from '@/components/catalog/ProductVideoModal'
+import { RichTextContent } from '@/components/catalog/RichTextContent'
 import { Seo, siteUrl } from '@/components/seo/Seo'
 import { track } from '@/lib/analytics/collector'
 import { COMPANY } from '@/lib/company'
-import { buildSrcset, PRODUCT_IMAGE_LADDER, preferUrl } from '@/lib/image-srcset'
+import { preferUrl } from '@/lib/image-srcset'
 import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
@@ -34,6 +39,8 @@ export default function ProductDetailPage() {
   const { slugUuid } = useParams<{ slugUuid: string }>()
   const [selectedImage, setSelectedImage] = useState(0)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
+  const [activeVideoPoster, setActiveVideoPoster] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null)
   const addToCart = useCartStore((s) => s.addItem)
@@ -126,10 +133,8 @@ export default function ProductDetailPage() {
       ? [product.image_original_url]
       : gallery
   const galleryLadders = product.gallery_sizes ?? []
-  const selectedLadder = galleryLadders[selectedImage] ?? product.image_urls ?? null
-  const selectedSrcset = buildSrcset(selectedLadder, PRODUCT_IMAGE_LADDER)
-  const selectedImageSrc =
-    preferUrl(selectedLadder, ['large', 'medium', 'original']) ?? gallery[selectedImage]
+  const videos = product.videos ?? []
+  const hasSpecs = (product.specs?.length ?? 0) > 0
   const selectedVariant = product.variants?.find((v) => v.id === selectedVariantId) ?? null
 
   const basePrice = Number(selectedVariant?.price ?? product.price)
@@ -149,7 +154,7 @@ export default function ProductDetailPage() {
 
   const isOnDemand = product.sourcing != null && product.sourcing !== 'in_stock'
   const isInStock = !stock?.track_inventory || stock.available > 0
-  const metaDescription = (product.summary || product.description || '')
+  const metaDescription = (product.summary || (product.description ?? '').replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 160)
@@ -180,8 +185,13 @@ export default function ProductDetailPage() {
         : undefined,
   }
 
+  const openImageAt = (index: number) => {
+    setSelectedImage(index)
+    setImageModalOpen(true)
+  }
+
   return (
-    <div className="shell mx-auto px-2 py-8">
+    <div className="shell mx-auto px-4 py-8 sm:px-0">
       <Seo
         title={product.name}
         description={metaDescription || t('product.buy_online', { name: product.name })}
@@ -217,64 +227,63 @@ export default function ProductDetailPage() {
         )}
       </nav>
 
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="grid items-start gap-4 lg:grid-cols-12">
         {/* Gallery */}
-        <div className="flex lg:col-span-6">
-          {gallery.length > 1 && (
-            <div className="flex shrink-0 flex-col gap-2">
-              {gallery.map((url, index) => (
-                <button
-                  key={url}
-                  type="button"
-                  onClick={() => setSelectedImage(index)}
-                  className={`h-20 w-20 shrink-0 overflow-hidden rounded-lg border ${
-                    selectedImage === index
-                      ? 'border-blue-600 ring-2 ring-blue-600/20'
-                      : 'border-gray-200 dark:border-gray-800'
-                  }`}
-                >
-                  <img
-                    src={preferUrl(galleryLadders[index], ['small', 'medium']) ?? url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="lg:col-span-5">
+          <ProductGallerySlider
+            className="lg:hidden"
+            images={gallery}
+            ladders={galleryLadders}
+            alt={product.name}
+            index={selectedImage}
+            onIndexChange={setSelectedImage}
+            onOpen={openImageAt}
+            openLabel={t('product.view_larger')}
+            showDots
+          />
 
-          <button
-            type="button"
-            onClick={() => setImageModalOpen(true)}
-            className="group relative min-w-0 max-w-150 flex-1 overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900"
-            aria-label={t('product.view_larger')}
-          >
-            {gallery[selectedImage] ? (
-              <img
-                src={selectedImageSrc}
-                srcSet={selectedSrcset}
-                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 48vw, 600px"
-                alt={product.name}
-                className="aspect-square max-h-150 w-full max-w-150 object-cover"
-              />
-            ) : (
-              <div className="flex aspect-square w-full items-center justify-center">
-                <Package className="h-24 w-24 text-gray-300 dark:text-gray-600" />
+          <div className="hidden gap-3 lg:flex">
+            {gallery.length > 1 && (
+              <div className="flex shrink-0 flex-col gap-2 self-start">
+                {gallery.map((url, index) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setSelectedImage(index)}
+                    className={`h-20 w-20 shrink-0 overflow-hidden rounded-lg border ${
+                      selectedImage === index
+                        ? 'border-blue-600 ring-2 ring-blue-600/20'
+                        : 'border-gray-200 dark:border-gray-800'
+                    }`}
+                  >
+                    <img
+                      src={preferUrl(galleryLadders[index], ['small', 'medium']) ?? url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                ))}
               </div>
             )}
 
-            {gallery[selectedImage] && (
-              <span className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white transition-colors group-hover:bg-black/70">
-                <ZoomIn className="h-5 w-5" />
-              </span>
-            )}
-          </button>
+            <ProductGallerySlider
+              className="min-w-0 flex-1 self-start"
+              images={gallery}
+              ladders={galleryLadders}
+              alt={product.name}
+              index={selectedImage}
+              onIndexChange={setSelectedImage}
+              onOpen={openImageAt}
+              openLabel={t('product.view_larger')}
+              showArrows
+            />
+          </div>
         </div>
 
         {/* Info */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-4">
           {brand && (
             <p className="font-semibold text-blue-600 text-sm uppercase tracking-wide dark:text-blue-400">
               {brand}
@@ -515,45 +524,95 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Details */}
-      <div className="mt-12 grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      {/* Specifications — full width, six columns on desktop */}
+      {hasSpecs && (
+        <section className="mt-12">
           <h2 className="font-bold text-gray-900 text-xl dark:text-white">
-            {t('product.description')}
+            {t('product.specifications')}
           </h2>
-          <div className="mt-3 space-y-3 text-gray-600 dark:text-gray-300">
-            {product.description ? (
-              product.description
-                .split(/\n+/)
-                .map((paragraph) => <p key={paragraph}>{paragraph}</p>)
-            ) : (
-              <p className="text-gray-400">{t('product.no_description')}</p>
-            )}
-          </div>
-        </div>
+          <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {product.specs?.map((spec) => (
+              <div
+                key={spec.key}
+                className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-gray-900/40"
+              >
+                <dt className="text-gray-500 text-xs dark:text-gray-400">{spec.key}</dt>
+                <dd className="mt-1 font-medium text-gray-900 text-sm dark:text-white">
+                  {spec.value}{' '}
+                  {spec.unit_name && <span className="text-gray-400">({spec.unit_name})</span>}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
-        {product.specs && product.specs.length > 0 && (
-          <div>
+      {/* Packaging & shipping facts — after the specifications */}
+      {product.packaging && <ProductPackaging packaging={product.packaging} />}
+
+      {/* Product videos — full-width block, directly above the description */}
+      {videos.length > 0 && (
+        <section className="mt-12" aria-label={t('product.videos')}>
+          <div className="mb-4 flex items-center gap-2">
+            <Film className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <h2 className="font-bold text-gray-900 text-xl dark:text-white">
-              {t('product.specifications')}
+              {t('product.videos')}
             </h2>
-            <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
-              {product.specs.map((spec, index) => (
-                <div
-                  key={spec.key}
-                  className={`flex items-center justify-between gap-4 px-4 py-2.5 text-sm ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900/40' : 'bg-white dark:bg-gray-900'}`}
-                >
-                  <span className="text-gray-500 dark:text-gray-400">{spec.key}</span>
-                  <span className="text-right font-medium text-gray-900 dark:text-white">
-                    {spec.value}{' '}
-                    {spec.unit_name && <span className="text-gray-400">({spec.unit_name})</span>}
-                  </span>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
-      </div>
+          <div className="space-y-4">
+            {videos.map((video) => {
+              const poster = video.poster_url ?? product.image_url ?? null
+
+              return (
+                <button
+                  key={video.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveVideoUrl(video.url)
+                    setActiveVideoPoster(poster)
+                  }}
+                  aria-label={t('product.play_video')}
+                  className="group relative block h-60 w-full cursor-pointer overflow-hidden rounded-2xl border border-gray-200 bg-gray-900 dark:border-gray-800"
+                >
+                  {poster ? (
+                    <img
+                      src={poster}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-gradient-to-r from-gray-800 to-gray-900">
+                      <Film className="h-8 w-8 text-gray-600" />
+                    </span>
+                  )}
+
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30 transition-colors group-hover:bg-black/45">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-lg transition-transform group-hover:scale-105">
+                      <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Description — full width, after the video block */}
+      <section className="mt-12" aria-label={t('product.description')}>
+        <h2 className="font-bold text-gray-900 text-xl dark:text-white">
+          {t('product.description')}
+        </h2>
+        <div className="mt-3">
+          {product.description ? (
+            <RichTextContent html={product.description} />
+          ) : (
+            <p className="text-gray-400">{t('product.no_description')}</p>
+          )}
+        </div>
+      </section>
 
       <ProductReviews routeKey={product.route_key} />
 
@@ -561,6 +620,14 @@ export default function ProductDetailPage() {
       <div className="mt-12">
         <BannerZone placement="product_detail" categoryId={product.categories?.[0]?.id} />
       </div>
+
+      <ProductVideoModal
+        isOpen={activeVideoUrl !== null}
+        onClose={() => setActiveVideoUrl(null)}
+        src={activeVideoUrl}
+        poster={activeVideoPoster}
+        title={product.name}
+      />
 
       <ProductImageModal
         isOpen={imageModalOpen}

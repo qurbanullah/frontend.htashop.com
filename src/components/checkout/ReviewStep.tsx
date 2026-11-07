@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Banknote, CreditCard, Mail, MapPin, Pencil, Receipt, Truck } from 'lucide-react'
 import type * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import type { CheckoutShippingOption } from '@/api/checkout'
 import { countriesApi } from '@/api/countries'
+import { ShippingMethodSection } from '@/components/checkout/ShippingMethodSection'
 import { type AddressFormValue, formatAddressLine } from '@/lib/address'
 import type { CheckoutStep } from '@/lib/checkout-schema'
 
@@ -15,6 +17,10 @@ interface Props {
   paymentRequiresRedirect: boolean
   notes: string
   isAuthenticated: boolean
+  shippingOptions: CheckoutShippingOption[]
+  selectedShippingRate: string | null
+  shippingLoading: boolean
+  onSelectShippingRate: (id: string) => void
   onEdit: (step: CheckoutStep) => void
 }
 
@@ -74,6 +80,10 @@ export function ReviewStep({
   paymentRequiresRedirect,
   notes,
   isAuthenticated,
+  shippingOptions,
+  selectedShippingRate,
+  shippingLoading,
+  onSelectShippingRate,
   onEdit,
 }: Props) {
   const { t } = useTranslation()
@@ -119,6 +129,18 @@ export function ReviewStep({
         <p>{formatAddressLine(shipping)}</p>
         <p>{countryName(shipping.country_id)}</p>
       </Section>
+
+      {shippingOptions.length > 0 && (
+        <div className="py-4">
+          <ShippingMethodSection
+            options={shippingOptions}
+            selectedId={selectedShippingRate}
+            currency={shippingOptions[0]?.currency ?? 'PKR'}
+            loading={shippingLoading}
+            onSelect={onSelectShippingRate}
+          />
+        </div>
+      )}
 
       <Section
         icon={MapPin}
