@@ -23,12 +23,12 @@ import { ProductGallerySlider } from '@/components/catalog/ProductGallerySlider'
 import { ProductImageModal } from '@/components/catalog/ProductImageModal'
 import { ProductPackaging } from '@/components/catalog/ProductPackaging'
 import { ProductReviews } from '@/components/catalog/ProductReviews'
+import { ProductThumbnailRail } from '@/components/catalog/ProductThumbnailRail'
 import { ProductVideoModal } from '@/components/catalog/ProductVideoModal'
 import { RichTextContent } from '@/components/catalog/RichTextContent'
 import { Seo, siteUrl } from '@/components/seo/Seo'
 import { track } from '@/lib/analytics/collector'
 import { COMPANY } from '@/lib/company'
-import { preferUrl } from '@/lib/image-srcset'
 import { formatMoney } from '@/lib/money'
 import { paths } from '@/routes/paths'
 import { useCartStore } from '@/stores/cart'
@@ -243,30 +243,13 @@ export default function ProductDetailPage() {
           />
 
           <div className="hidden gap-3 lg:flex">
-            {gallery.length > 1 && (
-              <div className="flex shrink-0 flex-col gap-2 self-start">
-                {gallery.map((url, index) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setSelectedImage(index)}
-                    className={`h-20 w-20 shrink-0 overflow-hidden rounded-lg border ${
-                      selectedImage === index
-                        ? 'border-blue-600 ring-2 ring-blue-600/20'
-                        : 'border-gray-200 dark:border-gray-800'
-                    }`}
-                  >
-                    <img
-                      src={preferUrl(galleryLadders[index], ['small', 'medium']) ?? url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
+            <ProductThumbnailRail
+              images={gallery}
+              ladders={galleryLadders}
+              index={selectedImage}
+              onSelect={setSelectedImage}
+              alt={product.name}
+            />
 
             <ProductGallerySlider
               className="min-w-0 flex-1 self-start"
