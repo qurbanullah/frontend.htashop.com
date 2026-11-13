@@ -18,6 +18,7 @@ import {
   FilterSidebar,
 } from '@/components/catalog/FilterSidebar'
 import { ProductCard } from '@/components/catalog/ProductCard'
+import { ProductQuoteModal } from '@/components/quotes/ProductQuoteModal'
 import { Seo, siteUrl } from '@/components/seo/Seo'
 import { useFocusTrap } from '@/hooks/shared/useFocusTrap'
 import { paths } from '@/routes/paths'
@@ -87,6 +88,7 @@ function ProductResults({
   meta: ProductsMeta | undefined
 }) {
   const { t } = useTranslation()
+  const [quoteProduct, setQuoteProduct] = useState<CatalogProduct | null>(null)
 
   return (
     <>
@@ -117,10 +119,12 @@ function ProductResults({
       ) : (
         <div className="product-grid">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product.id} product={product} onRequestQuote={setQuoteProduct} />
           ))}
         </div>
       )}
+
+      <ProductQuoteModal product={quoteProduct} onClose={() => setQuoteProduct(null)} />
     </>
   )
 }

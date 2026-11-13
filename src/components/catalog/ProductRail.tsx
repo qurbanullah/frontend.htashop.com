@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CatalogProduct } from '@/api/catalog'
 import { ProductCard } from '@/components/catalog/ProductCard'
+import { ProductQuoteModal } from '@/components/quotes/ProductQuoteModal'
 import { scrollOffset, toPhysicalScrollDelta } from '@/lib/rtl'
 
 interface ProductRailProps {
@@ -44,6 +45,7 @@ export function ProductRail({ products, isLoading = false, emptyLabel }: Product
   const trackRef = useRef<HTMLDivElement>(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(true)
+  const [quoteProduct, setQuoteProduct] = useState<CatalogProduct | null>(null)
 
   const updateArrows = useCallback(() => {
     const el = trackRef.current
@@ -80,39 +82,43 @@ export function ProductRail({ products, isLoading = false, emptyLabel }: Product
   }
 
   return (
-    <div className="group/rail relative">
-      <div
-        ref={trackRef}
-        onScroll={updateArrows}
-        className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 items-stretch gap-4 overflow-x-auto scroll-smooth px-4 sm:-mx-6 sm:scroll-px-6 sm:px-6"
-      >
-        {products.map((product) => (
-          <div key={product.id} className="flex w-44 shrink-0 snap-start sm:w-52 md:w-56">
-            <ProductCard product={product} />
-          </div>
-        ))}
+    <>
+      <div className="group/rail relative">
+        <div
+          ref={trackRef}
+          onScroll={updateArrows}
+          className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 items-stretch gap-4 overflow-x-auto scroll-smooth px-4 sm:-mx-6 sm:scroll-px-6 sm:px-6"
+        >
+          {products.map((product) => (
+            <div key={product.id} className="flex w-44 shrink-0 snap-start sm:w-52 md:w-56">
+              <ProductCard product={product} onRequestQuote={setQuoteProduct} />
+            </div>
+          ))}
+        </div>
+
+        {canPrev && (
+          <button
+            type="button"
+            onClick={() => scrollByPage(-1)}
+            className="absolute start-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-lg transition-colors hover:bg-white hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-200 dark:hover:bg-gray-900 dark:hover:text-blue-400"
+            aria-label={t('catalog.prev_products')}
+          >
+            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
+          </button>
+        )}
+        {canNext && (
+          <button
+            type="button"
+            onClick={() => scrollByPage(1)}
+            className="absolute end-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-lg transition-colors hover:bg-white hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-200 dark:hover:bg-gray-900 dark:hover:text-blue-400"
+            aria-label={t('catalog.next_products')}
+          >
+            <ChevronRight className="h-5 w-5 rtl:rotate-180" />
+          </button>
+        )}
       </div>
 
-      {canPrev && (
-        <button
-          type="button"
-          onClick={() => scrollByPage(-1)}
-          className="absolute start-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-lg transition-colors hover:bg-white hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-200 dark:hover:bg-gray-900 dark:hover:text-blue-400"
-          aria-label={t('catalog.prev_products')}
-        >
-          <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
-        </button>
-      )}
-      {canNext && (
-        <button
-          type="button"
-          onClick={() => scrollByPage(1)}
-          className="absolute end-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-700 shadow-lg transition-colors hover:bg-white hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-200 dark:hover:bg-gray-900 dark:hover:text-blue-400"
-          aria-label={t('catalog.next_products')}
-        >
-          <ChevronRight className="h-5 w-5 rtl:rotate-180" />
-        </button>
-      )}
-    </div>
+      <ProductQuoteModal product={quoteProduct} onClose={() => setQuoteProduct(null)} />
+    </>
   )
 }

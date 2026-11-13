@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CatalogProduct } from '@/api/catalog'
 import { ProductCard } from '@/components/catalog/ProductCard'
+import { ProductQuoteModal } from '@/components/quotes/ProductQuoteModal'
 
 interface ProductGridProps {
   products: CatalogProduct[]
@@ -30,6 +32,7 @@ function ProductCardSkeleton() {
  */
 export function ProductGrid({ products, isLoading = false, emptyLabel }: ProductGridProps) {
   const { t } = useTranslation()
+  const [quoteProduct, setQuoteProduct] = useState<CatalogProduct | null>(null)
 
   if (isLoading) {
     return (
@@ -51,10 +54,14 @@ export function ProductGrid({ products, isLoading = false, emptyLabel }: Product
   }
 
   return (
-    <div className="product-grid">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </div>
+    <>
+      <div className="product-grid">
+        {products.map((product) => (
+          <ProductCard key={product.id} product={product} onRequestQuote={setQuoteProduct} />
+        ))}
+      </div>
+
+      <ProductQuoteModal product={quoteProduct} onClose={() => setQuoteProduct(null)} />
+    </>
   )
 }

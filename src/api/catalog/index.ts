@@ -9,6 +9,11 @@ export interface CatalogProduct {
   name: string
   slug: string
   route_key: string
+  seller_sku?: string | null
+  part_number?: string | null
+  model_number?: string | null
+  gtin?: string | null
+  barcode?: string | null
   summary: string | null
   status: string
   is_active: boolean

@@ -26,6 +26,7 @@ import { ProductReviews } from '@/components/catalog/ProductReviews'
 import { ProductThumbnailRail } from '@/components/catalog/ProductThumbnailRail'
 import { ProductVideoModal } from '@/components/catalog/ProductVideoModal'
 import { RichTextContent } from '@/components/catalog/RichTextContent'
+import { QuoteModal } from '@/components/quotes/QuoteModal'
 import { Seo, siteUrl } from '@/components/seo/Seo'
 import { track } from '@/lib/analytics/collector'
 import { COMPANY } from '@/lib/company'
@@ -39,6 +40,7 @@ export default function ProductDetailPage() {
   const { slugUuid } = useParams<{ slugUuid: string }>()
   const [selectedImage, setSelectedImage] = useState(0)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false)
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null)
   const [activeVideoPoster, setActiveVideoPoster] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
@@ -482,13 +484,14 @@ export default function ProductDetailPage() {
               {cartLoading ? t('product.adding') : t('product.add_to_cart')}
             </button>
 
-            <a
-              href={`mailto:${COMPANY.salesEmail}?subject=${quoteSubject}`}
+            <button
+              type="button"
+              onClick={() => setQuoteModalOpen(true)}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
               <Truck className="h-4 w-4" />
               {t('product.request_quote')}
-            </a>
+            </button>
             <Link
               to={paths.sourcing}
               className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 font-semibold text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
@@ -603,6 +606,27 @@ export default function ProductDetailPage() {
       <div className="mt-12">
         <BannerZone placement="product_detail" categoryId={product.categories?.[0]?.id} />
       </div>
+
+      <QuoteModal
+        isOpen={quoteModalOpen}
+        onClose={() => setQuoteModalOpen(false)}
+        product={{
+          id: product.id,
+          name: product.name,
+          routeKey: product.route_key,
+          sku: selectedVariant?.sku ?? product.seller_sku ?? null,
+          partNumber: product.part_number ?? null,
+          modelNumber: product.model_number ?? null,
+          gtin: product.gtin ?? null,
+          manufacturer: product.manufacturers?.[0]?.name ?? null,
+          brand: product.brands?.[0]?.name ?? null,
+          variantName: selectedVariant?.name ?? null,
+          quantity,
+          unitPrice: displayPrice,
+          currency: selectedVariant?.currency ?? product.currency ?? null,
+          imageUrl: product.image_url,
+        }}
+      />
 
       <ProductVideoModal
         isOpen={activeVideoUrl !== null}

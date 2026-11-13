@@ -1,4 +1,4 @@
-import { Package, ShoppingCart } from 'lucide-react'
+import { FileText, Package, ShoppingCart } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { CatalogProduct } from '@/api/catalog'
@@ -18,7 +18,13 @@ function priceInfo(product: CatalogProduct) {
   return { display: price, original: null }
 }
 
-export function ProductCard({ product }: { product: CatalogProduct }) {
+export function ProductCard({
+  product,
+  onRequestQuote,
+}: {
+  product: CatalogProduct
+  onRequestQuote?: (product: CatalogProduct) => void
+}) {
   const { t } = useTranslation()
   const brand = product.brands?.[0]?.name
   const price = priceInfo(product)
@@ -29,7 +35,7 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
     preferUrl(product.image_urls, ['medium', 'small', 'large', 'original']) ?? product.image_url
 
   return (
-    <div className="group flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
+    <div className="group relative flex h-full w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-lg dark:border-gray-800 dark:bg-gray-900">
       <Link to={`${paths.products}/${product.route_key}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
           {imgSrc ? (
@@ -49,6 +55,18 @@ export function ProductCard({ product }: { product: CatalogProduct }) {
           )}
         </div>
       </Link>
+
+      {onRequestQuote && (
+        <button
+          type="button"
+          onClick={() => onRequestQuote(product)}
+          className="absolute end-2 top-2 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white/95 text-gray-600 shadow-sm transition-colors hover:bg-white hover:text-blue-600 dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-300 dark:hover:text-blue-400"
+          aria-label={t('product.request_quote')}
+          title={t('product.request_quote')}
+        >
+          <FileText className="h-4 w-4" />
+        </button>
+      )}
 
       <div className="flex flex-1 flex-col p-4">
         {brand && (

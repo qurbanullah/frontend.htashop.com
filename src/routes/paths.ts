@@ -37,6 +37,7 @@ export const paths = {
   feedback: '/feedback',
   sourcing: '/sourcing',
   unsubscribe: '/unsubscribe/:token',
+  quotePortal: '/quote/:uuid',
 
   // Legal / compliance
   policiesPrivacy: '/policies/privacy-policy',
